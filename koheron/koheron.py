@@ -46,7 +46,7 @@ def command(device_name, fmt=''):
         def wrapper(self, *args, **kwargs):
             device = self.client.devices.get_device_from_name(device_name)
             device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__.upper())
+            cmd_id = device.get_operation_reference(func.__name__)
             self.client.send_command(device_id, cmd_id, fmt, *(args + tuple(kwargs.values())))
             return func(self, *args, **kwargs)
         return wrapper
@@ -57,7 +57,7 @@ def write_buffer(device_name, fmt='', fmt_handshake='I', dtype=np.uint32):
         def wrapper(self, *args, **kwargs):
             device = self.client.devices.get_device_from_name(device_name)
             device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__.upper())
+            cmd_id = device.get_operation_reference(func.__name__)
             args_ = args[1:] + tuple(kwargs.values()) + (len(args[0]),)
             self.client.send_command(device_id, cmd_id, fmt + 'I', *args_)
             self.client.send_handshaking(args[0], fmt=fmt_handshake, dtype=dtype)
@@ -132,26 +132,6 @@ def build_payload(fmt, args):
             raise ValueError('Unsupported type' + type(arg))
 
     return payload, size
-
-def class_to_device_name(classname):
-    """
-    If the device name is in a single word DEVNAME then the associated
-    class name must be Devname.
-
-    If the device name is in a several words DEV_NAME then the associated
-    class name must be DevName.
-    """
-    dev_name = []
-
-    # Check whether there are capital letters within the class name
-    # and insert an underscore before them
-    for idx, letter in enumerate(classname):
-        if idx > 0 and letter in list(string.ascii_uppercase):
-            dev_name.append('_')
-
-        dev_name.append(letter.upper())
-
-    return ''.join(dev_name)
 
 # --------------------------------------------
 # KoheronClient

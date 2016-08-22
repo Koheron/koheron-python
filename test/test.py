@@ -135,7 +135,7 @@ port = int(os.getenv('PYTEST_PORT', '36000'))
 client = KoheronClient('127.0.0.1', port)
 tests = Tests(client)
 
-client_unix = KClient(unixsock=unixsock)
+client_unix = KoheronClient(unixsock=unixsock)
 tests_unix = Tests(client_unix)
 
 tests.set_double(1.428571428571428492127)
