@@ -198,7 +198,7 @@ class KoheronClient:
     def send_command(self, device_id, operation_ref, type_str='', *args):
         cmd = make_command(device_id, operation_ref, type_str, *args)
         if self.sock.send(cmd) == 0:
-            raise ConnectionError("send_command(): Socket connection broken")
+            raise ConnectionError("send_command: Socket connection broken")
 
     def recv(self, fmt="I"):
         buff_size = struct.calcsize(fmt)
@@ -240,11 +240,16 @@ class KoheronClient:
         """ Receive data until an escape sequence is found. """
         total_data = []
         while 1:
-            data = self.sock.recv(128).decode('utf-8')
-            if data:
-                total_data.append(data)
-                if ''.join(total_data).find(escape_seq) > 0:
-                    break
+            try:
+                data = self.sock.recv(128).decode('utf-8')
+
+                if data:
+                    total_data.append(data)
+                    if ''.join(total_data).find(escape_seq) > 0:
+                        break
+            except:
+                raise ConnectionError("recv_until: Socket connection broken")
+
         return ''.join(total_data)
 
     def recv_string(self):
