@@ -200,26 +200,26 @@ class KoheronClient:
         data = self.recv_json()
 
         self.devices_idx = {}
-        self.ops_idx_list = []
+        self.cmds_idx_list = []
 
         for dev_idx, dev in enumerate(data):
             self.devices_idx[dev['name']] = dev_idx
-            ops_idx = {}
-            for op_idx, op in enumerate(dev['operations']):
-                ops_idx[op] = op_idx
-            self.ops_idx_list.append(ops_idx)
+            cmds_idx = {}
+            for cmd_idx, cmd in enumerate(dev['operations']):
+                cmds_idx[cmd] = cmd_idx
+            self.cmds_idx_list.append(cmds_idx)
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]
-        cmd_id = self.ops_idx_list[device_id][command_name]
+        cmd_id = self.cmds_idx_list[device_id][command_name]
         return device_id, cmd_id
 
     # -------------------------------------------------------
     # Send/Receive
     # -------------------------------------------------------
 
-    def send_command(self, device_id, operation_ref, type_str='', *args):
-        cmd = make_command(device_id, operation_ref, type_str, *args)
+    def send_command(self, device_id, cmd_id, type_str='', *args):
+        cmd = make_command(device_id, cmd_id, type_str, *args)
         if self.sock.send(cmd) == 0:
             raise ConnectionError("send_command: Socket connection broken")
 
