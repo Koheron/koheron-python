@@ -244,7 +244,7 @@ class KoheronClient:
         return b''.join(data)
 
     def recv_string(self):
-        reserved, length = self.recv_tuple('IQ')
+        reserved, length = self.recv_tuple('II')
         assert(reserved == 0)
         return self.recv_all(length)[:-1]
 
