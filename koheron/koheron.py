@@ -8,6 +8,9 @@ import string
 import json
 import requests
 import time
+# import pprint
+
+ConnectionError = requests.ConnectionError
 
 # --------------------------------------------
 # HTTP API
@@ -240,30 +243,10 @@ class KoheronClient:
                 raise ConnectionError("recv_all: Socket connection broken")
         return b''.join(data)
 
-    def recv_until(self, escape_seq, timeout=5):
-        """ Receive data until an escape sequence is found. """
-        total_data = []
-        begin = time.time()
-
-        while 1:
-            if time.time()-begin > timeout:
-                print('Data received: ' + ''.join(total_data))
-                raise ConnectionError("recv_until: Timeout")
-
-            try:
-                data = self.sock.recv(128).decode('utf-8')
-
-                if data:
-                    total_data.append(data)
-                    if ''.join(total_data).find(escape_seq) > 0:
-                        break
-            except:
-                raise ConnectionError("recv_until: Socket connection broken")
-
-        return ''.join(total_data)
-
     def recv_string(self):
-        return self.recv_until('\0')[:-1]
+        reserved, length = self.recv_tuple('IQ')
+        assert(reserved == 0)
+        return self.recv_all(length)[:-1]
 
     def recv_json(self):
         return json.loads(self.recv_string())
@@ -309,7 +292,7 @@ class KoheronClient:
     def get_stats(self):
         """ Print server statistics """
         self.send_command(1, 2)
-        msg = self.recv_until('EOKS')
+        msg = self.recv_string()
         return msg
 
     def __del__(self):
@@ -324,8 +307,7 @@ class Devices:
         except:
             raise ConnectionError('Failed to send initialization command')
 
-        lines = client.recv_until('EOC').split('\n')
-        self.devices = list(map(lambda line: Device(line), lines[1:-2]))
+        self.devices = [Device(idx, data) for idx, data in enumerate(client.recv_json())]
 
     def get_device_from_name(self, device_name):
         device = next((dev for dev in self.devices if dev.name == device_name), None)
@@ -334,15 +316,10 @@ class Devices:
         return device
 
 class Device:
-
-    def __init__(self, line):
-        self.parse_info(line)
-
-    def parse_info(self, line):
-        tokens = line.split(':')
-        self.id = int(tokens[0][1:])
-        self.name = tokens[1]
-        self.operations = [op for op in tokens[2:] if len(op) != 0]
+    def __init__(self, idx, data):
+        self.id = idx
+        self.name = data['name']
+        self.operations = data['operations']
 
     def get_operation_reference(self, operation_name):
         try:
