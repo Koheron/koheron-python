@@ -48,9 +48,7 @@ def load_instrument(host, instrument='oscillo', always_restart=False):
 def command(device_name, fmt=''):
     def real_command(func):
         def wrapper(self, *args, **kwargs):
-            # device = self.client.devices[device_name] #self.client.devices.get_device_from_name(device_name)
-            device_id = self.client.devices_idx[device_name]
-            cmd_id = self.client.ops_idx_list[device_id][func.__name__]
+            device_id, cmd_id = self.client.get_ids(device_name, func.__name__)
             self.client.send_command(device_id, cmd_id, fmt, *(args + tuple(kwargs.values())))
             return func(self, *args, **kwargs)
         return wrapper
@@ -59,8 +57,7 @@ def command(device_name, fmt=''):
 def write_buffer(device_name, fmt='', fmt_handshake='I', dtype=np.uint32):
     def real_command(func):
         def wrapper(self, *args, **kwargs):
-            device_id = self.client.devices_idx[device_name]
-            cmd_id = self.client.ops_idx_list[device_id][func.__name__]
+            device_id, cmd_id = self.client.get_ids(device_name, func.__name__)
             args_ = args[1:] + tuple(kwargs.values()) + (len(args[0]),)
             self.client.send_command(device_id, cmd_id, fmt + 'I', *args_)
             self.client.send_handshaking(args[0], fmt=fmt_handshake, dtype=dtype)
@@ -211,6 +208,11 @@ class KoheronClient:
             for op_idx, op in enumerate(dev['operations']):
                 ops_idx[op] = op_idx
             self.ops_idx_list.append(ops_idx)
+
+    def get_ids(self, device_name, command_name):
+        device_id = self.devices_idx[device_name]
+        cmd_id = self.ops_idx_list[device_id][command_name]
+        return device_id, cmd_id
 
     # -------------------------------------------------------
     # Send/Receive
