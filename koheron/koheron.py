@@ -48,9 +48,9 @@ def load_instrument(host, instrument='oscillo', always_restart=False):
 def command(device_name, fmt=''):
     def real_command(func):
         def wrapper(self, *args, **kwargs):
-            device = self.client.devices.get_device_from_name(device_name)
-            device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__)
+            # device = self.client.devices[device_name] #self.client.devices.get_device_from_name(device_name)
+            device_id = self.client.devices_idx[device_name]
+            cmd_id = self.client.ops_idx_list[device_id][func.__name__]
             self.client.send_command(device_id, cmd_id, fmt, *(args + tuple(kwargs.values())))
             return func(self, *args, **kwargs)
         return wrapper
@@ -59,9 +59,8 @@ def command(device_name, fmt=''):
 def write_buffer(device_name, fmt='', fmt_handshake='I', dtype=np.uint32):
     def real_command(func):
         def wrapper(self, *args, **kwargs):
-            device = self.client.devices.get_device_from_name(device_name)
-            device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__)
+            device_id = self.client.devices_idx[device_name]
+            cmd_id = self.client.ops_idx_list[device_id][func.__name__]
             args_ = args[1:] + tuple(kwargs.values()) + (len(args[0]),)
             self.client.send_command(device_id, cmd_id, fmt + 'I', *args_)
             self.client.send_handshaking(args[0], fmt=fmt_handshake, dtype=dtype)
@@ -193,7 +192,25 @@ class KoheronClient:
             raise ValueError("Unknown socket type")
 
         if self.is_connected:
-            self.devices = Devices(self)
+            self.load_devices()
+
+    def load_devices(self):
+        try:
+            self.send_command(1, 1)
+        except:
+            raise ConnectionError('Failed to send initialization command')
+
+        data = self.recv_json()
+
+        self.devices_idx = {}
+        self.ops_idx_list = []
+
+        for dev_idx, dev in enumerate(data):
+            self.devices_idx[dev['name']] = dev_idx
+            ops_idx = {}
+            for op_idx, op in enumerate(dev['operations']):
+                ops_idx[op] = op_idx
+            self.ops_idx_list.append(ops_idx)
 
     # -------------------------------------------------------
     # Send/Receive
@@ -285,44 +302,6 @@ class KoheronClient:
         else:
             raise ConnectionError('Invalid handshaking')
 
-    # -------------------------------------------------------
-    # Current session information
-    # -------------------------------------------------------
-
-    def get_stats(self):
-        """ Print server statistics """
-        self.send_command(1, 2)
-        msg = self.recv_string()
-        return msg
-
     def __del__(self):
         if hasattr(self, 'sock'):
             self.sock.close()
-
-class Devices:
-    def __init__(self, client):
-        """ Receive and parse the commands description message sent by koheron-server """
-        try:
-            client.send_command(1, 1)
-        except:
-            raise ConnectionError('Failed to send initialization command')
-
-        self.devices = [Device(idx, data) for idx, data in enumerate(client.recv_json())]
-
-    def get_device_from_name(self, device_name):
-        device = next((dev for dev in self.devices if dev.name == device_name), None)
-        if device is None:
-            raise ValueError('Device ' + device_name + ' unknown')
-        return device
-
-class Device:
-    def __init__(self, idx, data):
-        self.id = idx
-        self.name = data['name']
-        self.operations = data['operations']
-
-    def get_operation_reference(self, operation_name):
-        try:
-            return self.operations.index(operation_name)
-        except:
-            return -1
