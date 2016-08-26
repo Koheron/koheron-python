@@ -2,11 +2,10 @@
 TMP = tmp
 
 SERVER_URL = https://github.com/Koheron/koheron-server.git
+SERVER_BRANCH = master
 SERVER_DIR = $(TMP)/koheron-server
 SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
-SERVER_BRANCH = master
 SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
-SERVER_CONFIG = config/config_local.yaml
 
 .PHONY: test test_common run_server_local deploy clean_dist clean
 
@@ -44,7 +43,7 @@ $(SERVER_VENV): $(SERVER_DIR)/requirements.txt
 	$(SERVER_VENV)/bin/pip install -r $(SERVER_DIR)/requirements.txt
 
 $(SERVER_BIN): $(SERVER_VENV)
-	make -C $(SERVER_DIR) CONFIG=$(SERVER_CONFIG) PYTHON=koheron_server_venv/bin/python
+	make -C $(SERVER_DIR) CONFIG=config/config_local.yaml PYTHON=koheron_server_venv/bin/python
 
 run_server_local: $(SERVER_BIN)
 	nohup $(SERVER) -c $(SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
