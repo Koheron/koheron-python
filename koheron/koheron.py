@@ -7,7 +7,8 @@ import numpy as np
 import string
 import json
 import requests
-import time
+
+ConnectionError = requests.ConnectionError
 
 # --------------------------------------------
 # HTTP API
@@ -240,18 +241,13 @@ class KoheronClient:
                 raise ConnectionError("recv_all: Socket connection broken")
         return b''.join(data)
 
-    def recv_until(self, escape_seq, timeout=5):
+    def recv_until(self, escape_seq):
         """ Receive data until an escape sequence is found. """
         total_data = []
-        begin = time.time()
 
         while 1:
-            if time.time()-begin > timeout:
-                print('Data received: ' + ''.join(total_data))
-                raise ConnectionError("recv_until: Timeout")
-
             try:
-                data = self.sock.recv(128).decode('utf-8')
+                data = self.sock.recv(2048).decode('utf-8')
 
                 if data:
                     total_data.append(data)
