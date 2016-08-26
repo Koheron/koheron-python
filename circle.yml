@@ -2,9 +2,9 @@ machine:
   python:
     version: 2.7.6
 
-dependencies:
-  pre:
-    - pip install -r requirements.txt
+# dependencies:
+#   pre:
+#     - pip install -r requirements.txt
 
 test:
   pre:
