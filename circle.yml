@@ -5,8 +5,13 @@ machine:
 dependencies:
   pre:
     - pip install -r requirements.txt
-    - sudo apt-get install -y g++-5.4
+    # https://discuss.circleci.com/t/caching-apt-get-install-results/563
+    - sudo apt-get update; sudo apt-get install gcc-5; sudo apt-get install g++-5
+    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
 test:
   pre:
+    - gcc --version
+    - g++ --version
     - make test
