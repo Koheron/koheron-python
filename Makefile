@@ -11,6 +11,7 @@ SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 
 test: test.py run_server_local
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python -m pytest -v test.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python3 -m pytest -v test.py
 
 test_common:
 	py.test -v tests_common.py
