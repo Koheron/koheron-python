@@ -6,7 +6,8 @@ dependencies:
   pre:
     - pip install -r requirements.txt
     # https://discuss.circleci.com/t/caching-apt-get-install-results/563
-    - sudo apt-get update; sudo apt-get install gcc-5; sudo apt-get install g++-5
+    - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    - sudo apt-get update; sudo apt-get install gcc-5 g++-5
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
