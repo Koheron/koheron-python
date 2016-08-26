@@ -10,7 +10,7 @@ SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 .PHONY: test test_common run_server_local deploy clean_dist clean
 
 test: test.py run_server_local
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock py.test -v test.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python -m pytest -v test.py
 
 test_common:
 	py.test -v tests_common.py
