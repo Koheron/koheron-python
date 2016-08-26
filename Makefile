@@ -14,7 +14,8 @@ test: test.py run_server_local
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python3 -m pytest -v test.py
 
 test_common:
-	py.test -v tests_common.py
+	python -m pytest -v tests_common.py
+	python3 -m pytest -v tests_common.py
 	cat server.log
 	
 deploy: clean_dist
