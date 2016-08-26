@@ -1,24 +1,21 @@
 
 TMP = tmp
 
-TCP_SERVER_URL = https://github.com/Koheron/koheron-server.git
-TCP_SERVER_DIR = $(TMP)/koheron-server
-TCP_SERVER = $(TCP_SERVER_DIR)/tmp/kserverd
-TCP_SERVER_BRANCH = master
+SERVER_URL = https://github.com/Koheron/koheron-server.git
+SERVER_DIR = $(TMP)/koheron-server
+SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
+SERVER_BRANCH = master
+SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 SERVER_CONFIG = config/config_local.yaml
 
-.PHONY: test test_common start_server_local deploy clean_dist clean
+.PHONY: test test_common run_server_local deploy clean_dist clean
 
-test: test.py start_server_local
+test: test.py run_server_local
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock py.test -v test.py
 
 test_common:
-	$(TCP_SERVER) -c config/kserver_local.conf
 	py.test -v tests_common.py
 	cat server.log
-
-start_server_local: $(TCP_SERVER)
-	nohup $(TCP_SERVER) -c $(TCP_SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
 	
 deploy: clean_dist
 	python setup.py sdist bdist_wheel
@@ -32,9 +29,22 @@ clean_dist:
 clean: clean_dist
 	rm -rf $(TMP)
 
-$(TCP_SERVER_DIR):
-	git clone $(TCP_SERVER_URL) $(TCP_SERVER_DIR)
-	cd $(TCP_SERVER_DIR) && git checkout $(TCP_SERVER_SHA)
+# -------------------------------------------------------------------------------------
+# Build and run koheron-server
+# -------------------------------------------------------------------------------------
 
-$(TCP_SERVER): $(TCP_SERVER_DIR)
-	make -C $(TCP_SERVER_DIR) CONFIG=$(SERVER_CONFIG)
+$(SERVER_DIR):
+	git clone $(SERVER_URL) $(SERVER_DIR)
+	cd $(SERVER_DIR) && git checkout $(SERVER_BRANCH)
+
+$(SERVER_DIR)/requirements.txt: $(SERVER_DIR)
+
+$(SERVER_VENV): $(SERVER_DIR)/requirements.txt
+	virtualenv $(SERVER_VENV)
+	$(SERVER_VENV)/bin/pip install -r $(SERVER_DIR)/requirements.txt
+
+$(SERVER_BIN): $(SERVER_VENV)
+	make -C $(SERVER_DIR) CONFIG=$(SERVER_CONFIG) PYTHON=koheron_server_venv/bin/python
+
+run_server_local: $(SERVER_BIN)
+	nohup $(SERVER) -c $(SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
