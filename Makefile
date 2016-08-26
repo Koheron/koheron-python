@@ -46,4 +46,4 @@ $(SERVER_BIN): $(SERVER_VENV)
 	make -C $(SERVER_DIR) CONFIG=config/config_local.yaml PYTHON=koheron_server_venv/bin/python
 
 run_server_local: $(SERVER_BIN)
-	nohup $(SERVER) -c $(SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
+	nohup $(SERVER_BIN) -c $(SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
