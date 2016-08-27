@@ -2,16 +2,18 @@
 TMP = tmp
 
 SERVER_URL = https://github.com/Koheron/koheron-server.git
-SERVER_BRANCH = master
+SERVER_BRANCH = makefile
 SERVER_DIR = $(TMP)/koheron-server
+SERVER_PYTEST = $(SERVER_DIR)/tests/tests.py
 SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
 SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 
-.PHONY: test test_common run_server_local deploy clean_dist clean
+.PHONY: test test_common start_server deploy clean_dist clean
 
-test: test.py run_server_local
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python -m pytest -v test.py
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python3 -m pytest -v test.py
+test: start_server
+	cp $(SERVER_PYTEST) ./tests.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python -m pytest -v tests.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python3 -m pytest -v tests.py
 
 test_common:
 	python -m pytest -v tests_common.py
@@ -29,6 +31,7 @@ clean_dist:
 
 clean: clean_dist
 	rm -rf $(TMP)
+	rm -f ./tests.py
 
 # -------------------------------------------------------------------------------------
 # Build and run koheron-server
@@ -47,5 +50,5 @@ $(SERVER_VENV): $(SERVER_DIR)/requirements.txt
 $(SERVER_BIN): $(SERVER_VENV)
 	make -C $(SERVER_DIR) CONFIG=config/config_local.yaml PYTHON=koheron_server_venv/bin/python
 
-run_server_local: $(SERVER_BIN)
-	nohup $(SERVER_BIN) -c $(SERVER_DIR)/config/kserver_local.conf > /dev/null 2> server.log &
+start_server: $(SERVER_BIN)
+	make -C $(SERVER_DIR) start_server
