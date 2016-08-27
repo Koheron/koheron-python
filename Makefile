@@ -2,7 +2,7 @@
 TMP = tmp
 
 SERVER_URL = https://github.com/Koheron/koheron-server.git
-SERVER_BRANCH = makefile
+SERVER_BRANCH = master
 SERVER_DIR = $(TMP)/koheron-server
 SERVER_PYTEST = $(SERVER_DIR)/tests/tests.py
 SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
@@ -51,4 +51,4 @@ $(SERVER_BIN): $(SERVER_VENV)
 	make -C $(SERVER_DIR) CONFIG=config/config_local.yaml PYTHON=koheron_server_venv/bin/python
 
 start_server: $(SERVER_BIN)
-	make -C $(SERVER_DIR) start_server
+	make -C $(SERVER_DIR) PYTHON=koheron_server_venv/bin/python start_server
