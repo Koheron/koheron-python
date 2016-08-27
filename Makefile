@@ -2,36 +2,17 @@
 TMP = tmp
 
 SERVER_URL = https://github.com/Koheron/koheron-server.git
-SERVER_BRANCH = master
+SERVER_BRANCH = requirements
 SERVER_DIR = $(TMP)/koheron-server
 SERVER_PYTEST = $(SERVER_DIR)/tests/tests.py
 SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
 SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 
-.PHONY: test test_common start_server deploy clean_dist clean
+TEST_VENV = venv
+PY2_VENV = $(TEST_VENV)/py2
+PY3_VENV = $(TEST_VENV)/py3
 
-test: start_server
-	cp $(SERVER_PYTEST) ./tests.py
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python -m pytest -v tests.py
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock python3 -m pytest -v tests.py
-
-test_common:
-	python -m pytest -v tests_common.py
-	python3 -m pytest -v tests_common.py
-	cat server.log
-	
-deploy: clean_dist
-	python setup.py sdist bdist_wheel
-	twine upload dist/*
-
-clean_dist:
-	rm -rf build
-	rm -rf dist
-	rm -rf koheron.egg-info
-
-clean: clean_dist
-	rm -rf $(TMP)
-	rm -f ./tests.py
+.PHONY: test test_common start_server deploy clean_dist clean_venv clean
 
 # -------------------------------------------------------------------------------------
 # Build and run koheron-server
@@ -52,3 +33,49 @@ $(SERVER_BIN): $(SERVER_VENV)
 
 start_server: $(SERVER_BIN)
 	make -C $(SERVER_DIR) PYTHON=koheron_server_venv/bin/python start_server
+
+# -------------------------------------------------------------------------------------
+# Tests
+# -------------------------------------------------------------------------------------
+
+$(PY2_VENV): requirements.txt
+	virtualenv $(PY2_VENV)
+	$(PY2_VENV)/bin/pip install -r requirements.txt
+
+$(PY3_VENV): requirements.txt
+	virtualenv -p python3 $(PY3_VENV)
+	$(PY3_VENV)/bin/pip3 install -r requirements.txt
+
+test: $(PY2_VENV) $(PY3_VENV) start_server
+	cp $(SERVER_PYTEST) ./tests.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v tests.py
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v tests.py
+
+test_common:
+	python -m pytest -v tests_common.py
+	python3 -m pytest -v tests_common.py
+	cat server.log
+
+# -------------------------------------------------------------------------------------
+# Deploy
+# -------------------------------------------------------------------------------------
+
+deploy: clean_dist
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
+
+# -------------------------------------------------------------------------------------
+# Clean
+# -------------------------------------------------------------------------------------
+
+clean_dist:
+	rm -rf build
+	rm -rf dist
+	rm -rf koheron.egg-info
+
+clean_venv:
+	rm -rf $(TEST_VENV)
+
+clean: clean_dist
+	rm -rf $(TMP)
+	rm -f ./tests.py
