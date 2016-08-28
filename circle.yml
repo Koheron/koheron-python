@@ -13,8 +13,9 @@ dependencies:
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
 test:
-  pre:
+  post:
     - make start_server
           background: true
     - sleep 5
+  pre:
     - make test
