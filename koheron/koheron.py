@@ -296,7 +296,6 @@ class KoheronClient:
                 raise ConnectionError("recv_all: Socket connection broken")
         return b''.join(data)
 
-<<<<<<< HEAD
     def recv_until(self, escape_seq):
         """ Receive data until an escape sequence is found. """
         total_data = []
