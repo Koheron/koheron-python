@@ -18,5 +18,5 @@ test:
           background: true
     - sleep 5
   pre:
-    - make start-server
+    - make start_server
     - make test
