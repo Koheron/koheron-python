@@ -11,6 +11,7 @@ SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
 TEST_VENV = venv
 PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
+TESTS_PY = ./tests.py
 
 .PHONY: test test_common start_server deploy clean_dist clean_venv clean
 
@@ -46,10 +47,12 @@ $(PY3_VENV): requirements.txt
 	virtualenv -p python3 $(PY3_VENV)
 	$(PY3_VENV)/bin/pip3 install -r requirements.txt
 
-test: $(PY2_VENV) $(PY3_VENV) start_server
-	cp $(SERVER_PYTEST) ./tests.py
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v tests.py
-	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v tests.py
+$(TESTS_PY): $(SERVER_DIR)
+	cp $(SERVER_PYTEST) $(TESTS_PY)
+
+test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v $(TESTS_PY)
+	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v $(TESTS_PY)
 
 test_common:
 	python -m pytest -v tests_common.py
@@ -78,4 +81,4 @@ clean_venv:
 
 clean: clean_dist
 	rm -rf $(TMP)
-	rm -f ./tests.py
+	rm -f $(TESTS_PY)
