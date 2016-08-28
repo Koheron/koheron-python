@@ -60,7 +60,7 @@ class Common(object):
     def get_led(self):
         return self.client.recv_uint32()
 
-    @command('Init')
+    @command('Common')
     def init(self): pass
 
     @command('Common')

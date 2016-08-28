@@ -7,8 +7,43 @@ import numpy as np
 import string
 import json
 import requests
+import click
 
 ConnectionError = requests.ConnectionError
+
+# --------------------------------------------
+# CLI
+# --------------------------------------------
+
+@click.group()
+@click.option('--host', default='192.168.1.100', help='Host ip address', envvar='HOST')
+@click.option('--unixsock', default='/var/run/koheron-server.sock', help='Unix Socket path', envvar='UNIX_SOCK')
+@click.pass_context
+def cli(ctx, host, unixsock):
+    ctx.obj = KoheronClient(host=str(host), unixsock=unixsock)
+
+@cli.command()
+@click.pass_obj
+@click.argument('led_value', type=click.INT)
+def set_led(client, led_value):
+    from .common import Common
+    driver = Common(client)
+    driver.set_led(led_value)
+    click.echo('Led set to %d' % led_value)
+
+@cli.command()
+@click.pass_obj
+def get_led(client):
+    from .common import Common
+    driver = Common(client)
+    click.echo(driver.get_led())
+
+@cli.command()
+@click.pass_obj
+def init(client):
+    from .common import Common
+    driver = Common(client)
+    driver.init()
 
 # --------------------------------------------
 # HTTP API
