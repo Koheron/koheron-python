@@ -46,7 +46,7 @@ $(PY3_VENV): requirements.txt
 	virtualenv -p python3 $(PY3_VENV)
 	$(PY3_VENV)/bin/pip3 install -r requirements.txt
 
-test: $(PY2_VENV) $(PY3_VENV) start_server
+test: $(PY2_VENV) $(PY3_VENV)
 	cp $(SERVER_PYTEST) ./tests.py
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v tests.py
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v tests.py
