@@ -13,12 +13,8 @@ dependencies:
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
 test:
-  post:
-    - make ./tmp/koheron-server/tmp/kserverd
-    - ./tmp/koheron-server/tmp/kserverd -c ./tmp/koheron-server/config/kserver_local.conf:
+  pre:
+    - make start_server
           background: true
     - sleep 5
-  pre:
-    - gcc --version
-    - g++ --version
     - make test
