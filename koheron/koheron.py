@@ -133,6 +133,8 @@ def build_payload(fmt, args):
         elif type_ is 'V':
             size += append(payload, len(args[i]), 8)
             append_array(payload, args[i])
+            payload.extend(build_payload(fmt[i+1:], args[i+1:])[0])
+            break
         else:
             raise ValueError('Unsupported type' + type(arg))
 
