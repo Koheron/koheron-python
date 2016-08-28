@@ -14,7 +14,8 @@ dependencies:
 
 test:
   post:
-    - make start_server:
+    - make ./tmp/koheron-server/tmp/kserverd
+    - ./tmp/koheron-server/tmp/kserverd -c ./tmp/koheron-server/config/kserver_local.conf:
           background: true
     - sleep 5
   pre:
