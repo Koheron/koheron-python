@@ -16,7 +16,7 @@ setup(
     description='Koheron Python Library',
     long_description='Please see our GitHub README',
     keywords='FPGA Linux Instrumentation',
-    install_requires=['requests', 'Click'],
+    install_requires=['requests', 'Click', 'numpy'],
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5'
