@@ -17,8 +17,8 @@ ConnectionError = requests.ConnectionError
 # --------------------------------------------
 
 @click.group()
-@click.option('--host', help='Host ip address', envvar='HOST')
-@click.option('--unixsock', help='Unix Socket path', envvar='UNIX_SOCK')
+@click.option('--host', default='', help='Host ip address', envvar='HOST')
+@click.option('--unixsock', default='', help='Unix Socket path', envvar='UNIX_SOCK')
 @click.pass_context
 def cli(ctx, host, unixsock):
     ctx.obj = KoheronClient(host=str(host), unixsock=unixsock)
