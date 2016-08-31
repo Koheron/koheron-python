@@ -44,12 +44,17 @@ def load_instrument(host, instrument='oscillo', always_restart=False):
 # http://stackoverflow.com/questions/5929107/python-decorators-with-parameters
 # http://www.artima.com/weblogs/viewpost.jsp?thread=240845
 
-def command(device_name):
+def command(classname=None, funcname=None):
     def real_command(func):
-        def wrapper(self, *args, **kwargs):
-            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, func.__name__)
-            self.client.send_command(device_id, cmd_id, cmd_fmt, *(args + tuple(kwargs.values())))
-            return func(self, *args, **kwargs)
+        def wrapper(self, *args):
+            if classname is None:
+                device_name = self.__class__.__name__
+
+            if funcname is None:
+                cmd_name = func.__name__
+            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
+            self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
+            return func(self, *args)
         return wrapper
     return real_command
 
