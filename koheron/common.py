@@ -43,7 +43,7 @@ class Common(object):
         self.client = client
         self.mem_cfg = MemoryConfig(self.get_instrument_config())
 
-    @command(classname='Common')
+    @command()
     def get_bitstream_id(self):
         id_array = self.client.recv_array(8, dtype='uint32')
         return ''.join('{:08x}'.format(i) for i in id_array)

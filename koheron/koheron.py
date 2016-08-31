@@ -49,9 +49,13 @@ def command(classname=None, funcname=None):
         def wrapper(self, *args):
             if classname is None:
                 device_name = self.__class__.__name__
+            else:
+                device_name = classname
 
             if funcname is None:
                 cmd_name = func.__name__
+            else:
+                cmd_name = funcname
             device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
             self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
             return func(self, *args)
