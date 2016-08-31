@@ -53,7 +53,7 @@ class Common(object):
         id_array = self.client.recv_array(2, dtype='uint32')
         return ''.join('{:02x}'.format(i) for i in id_array)
 
-    @command('Common', 'I')
+    @command('Common')
     def set_led(self, value): pass
 
     @command('Common')
@@ -73,15 +73,15 @@ class Common(object):
 
         return get_version(self)
 
-    @command('Common', 'II')
+    @command('Common')
     def cfg_write(self, offset, value):
         pass
 
-    @command('Common', 'I')
+    @command('Common')
     def cfg_read(self, offset):
         return self.client.recv_uint32()
 
-    @command('Common', 'I')
+    @command('Common')
     def sts_read(self, offset):
         return self.client.recv_uint32()
 

@@ -44,22 +44,11 @@ def load_instrument(host, instrument='oscillo', always_restart=False):
 # http://stackoverflow.com/questions/5929107/python-decorators-with-parameters
 # http://www.artima.com/weblogs/viewpost.jsp?thread=240845
 
-def command(device_name, fmt=''):
+def command(device_name):
     def real_command(func):
         def wrapper(self, *args, **kwargs):
-            device_id, cmd_id = self.client.get_ids(device_name, func.__name__)
-            self.client.send_command(device_id, cmd_id, fmt, *(args + tuple(kwargs.values())))
-            return func(self, *args, **kwargs)
-        return wrapper
-    return real_command
-
-def write_buffer(device_name, fmt='', fmt_handshake='I', dtype=np.uint32):
-    def real_command(func):
-        def wrapper(self, *args, **kwargs):
-            device_id, cmd_id = self.client.get_ids(device_name, func.__name__)
-            args_ = args[1:] + tuple(kwargs.values()) + (len(args[0]),)
-            self.client.send_command(device_id, cmd_id, fmt + 'I', *args_)
-            self.client.send_handshaking(args[0], fmt=fmt_handshake, dtype=dtype)
+            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, func.__name__)
+            self.client.send_command(device_id, cmd_id, cmd_fmt, *(args + tuple(kwargs.values())))
             return func(self, *args, **kwargs)
         return wrapper
     return real_command
@@ -133,7 +122,7 @@ def build_payload(fmt, args):
             payload.extend(build_payload(fmt[i+1:], args[i+1:])[0])
             break
         else:
-            raise ValueError('Unsupported type' + type(arg))
+            raise ValueError('Unsupported type "' + type_ + '"')
 
     return payload, size
 
@@ -205,18 +194,23 @@ class KoheronClient:
 
         self.devices_idx = {}
         self.cmds_idx_list = []
+        self.cmds_fmt_list = []
 
         for dev_idx, dev in enumerate(data):
             self.devices_idx[dev['name']] = dev_idx
             cmds_idx = {}
+            cmds_fmt = {}
             for cmd_idx, cmd in enumerate(dev['operations']):
-                cmds_idx[cmd] = cmd_idx
+                cmds_idx[cmd['name']] = cmd_idx
+                cmds_fmt[cmd['name']] = cmd['fmt']
             self.cmds_idx_list.append(cmds_idx)
+            self.cmds_fmt_list.append(cmds_fmt)
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]
         cmd_id = self.cmds_idx_list[device_id][command_name]
-        return device_id, cmd_id
+        cmd_fmt = str(self.cmds_fmt_list[device_id][command_name])
+        return device_id, cmd_id, cmd_fmt
 
     # -------------------------------------------------------
     # Send/Receive
