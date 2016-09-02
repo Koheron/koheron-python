@@ -7,6 +7,7 @@ import numpy as np
 import string
 import json
 import requests
+import time
 
 ConnectionError = requests.ConnectionError
 
@@ -43,27 +44,21 @@ def load_instrument(host, instrument='oscillo', always_restart=False):
 # http://stackoverflow.com/questions/5929107/python-decorators-with-parameters
 # http://www.artima.com/weblogs/viewpost.jsp?thread=240845
 
-def command(device_name, fmt=''):
+def command(classname=None, funcname=None):
     def real_command(func):
-        def wrapper(self, *args, **kwargs):
-            device = self.client.devices.get_device_from_name(device_name)
-            device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__)
-            self.client.send_command(device_id, cmd_id, fmt, *(args + tuple(kwargs.values())))
-            return func(self, *args, **kwargs)
-        return wrapper
-    return real_command
+        def wrapper(self, *args):
+            if classname is None:
+                device_name = self.__class__.__name__
+            else:
+                device_name = classname
 
-def write_buffer(device_name, fmt='', fmt_handshake='I', dtype=np.uint32):
-    def real_command(func):
-        def wrapper(self, *args, **kwargs):
-            device = self.client.devices.get_device_from_name(device_name)
-            device_id = int(device.id)
-            cmd_id = device.get_operation_reference(func.__name__)
-            args_ = args[1:] + tuple(kwargs.values()) + (len(args[0]),)
-            self.client.send_command(device_id, cmd_id, fmt + 'I', *args_)
-            self.client.send_handshaking(args[0], fmt=fmt_handshake, dtype=dtype)
-            return func(self, *args, **kwargs)
+            if funcname is None:
+                cmd_name = func.__name__
+            else:
+                cmd_name = funcname
+            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
+            self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
+            return func(self, *args)
         return wrapper
     return real_command
 
@@ -130,8 +125,13 @@ def build_payload(fmt, args):
                 size += append(payload, 0, 1)
         elif type_ is 'A':
             size += append_array(payload, args[i])
+        elif type_ is 'V':
+            size += append(payload, len(args[i]), 8)
+            append_array(payload, args[i])
+            payload.extend(build_payload(fmt[i+1:], args[i+1:])[0])
+            break
         else:
-            raise ValueError('Unsupported type' + type(arg))
+            raise ValueError('Unsupported type "' + type_ + '"')
 
     return payload, size
 
@@ -191,14 +191,42 @@ class KoheronClient:
             raise ValueError("Unknown socket type")
 
         if self.is_connected:
-            self.devices = Devices(self)
+            self.load_devices()
+
+    def load_devices(self):
+        try:
+            self.send_command(1, 1)
+        except:
+            raise ConnectionError('Failed to send initialization command')
+
+        data = self.recv_json()
+
+        self.devices_idx = {}
+        self.cmds_idx_list = []
+        self.cmds_fmt_list = []
+
+        for dev_idx, dev in enumerate(data):
+            self.devices_idx[dev['name']] = dev_idx
+            cmds_idx = {}
+            cmds_fmt = {}
+            for cmd_idx, cmd in enumerate(dev['operations']):
+                cmds_idx[cmd['name']] = cmd_idx
+                cmds_fmt[cmd['name']] = cmd['fmt']
+            self.cmds_idx_list.append(cmds_idx)
+            self.cmds_fmt_list.append(cmds_fmt)
+
+    def get_ids(self, device_name, command_name):
+        device_id = self.devices_idx[device_name]
+        cmd_id = self.cmds_idx_list[device_id][command_name]
+        cmd_fmt = str(self.cmds_fmt_list[device_id][command_name])
+        return device_id, cmd_id, cmd_fmt
 
     # -------------------------------------------------------
     # Send/Receive
     # -------------------------------------------------------
 
-    def send_command(self, device_id, operation_ref, type_str='', *args):
-        cmd = make_command(device_id, operation_ref, type_str, *args)
+    def send_command(self, device_id, cmd_id, type_str='', *args):
+        cmd = make_command(device_id, cmd_id, type_str, *args)
         if self.sock.send(cmd) == 0:
             raise ConnectionError("send_command: Socket connection broken")
 
@@ -241,25 +269,10 @@ class KoheronClient:
                 raise ConnectionError("recv_all: Socket connection broken")
         return b''.join(data)
 
-    def recv_until(self, escape_seq):
-        """ Receive data until an escape sequence is found. """
-        total_data = []
-
-        while 1:
-            try:
-                data = self.sock.recv(2048).decode('utf-8')
-
-                if data:
-                    total_data.append(data)
-                    if ''.join(total_data).find(escape_seq) > 0:
-                        break
-            except:
-                raise ConnectionError("recv_until: Socket connection broken")
-
-        return ''.join(total_data)
-
     def recv_string(self):
-        return self.recv_until('\0')[:-1]
+        reserved, length = self.recv_tuple('II')
+        assert(reserved == 0)
+        return self.recv_all(length)[:-1].decode('utf8')
 
     def recv_json(self):
         return json.loads(self.recv_string())
@@ -298,50 +311,6 @@ class KoheronClient:
         else:
             raise ConnectionError('Invalid handshaking')
 
-    # -------------------------------------------------------
-    # Current session information
-    # -------------------------------------------------------
-
-    def get_stats(self):
-        """ Print server statistics """
-        self.send_command(1, 2)
-        msg = self.recv_until('EOKS')
-        return msg
-
     def __del__(self):
         if hasattr(self, 'sock'):
             self.sock.close()
-
-class Devices:
-    def __init__(self, client):
-        """ Receive and parse the commands description message sent by koheron-server """
-        try:
-            client.send_command(1, 1)
-        except:
-            raise ConnectionError('Failed to send initialization command')
-
-        lines = client.recv_until('EOC').split('\n')
-        self.devices = list(map(lambda line: Device(line), lines[1:-2]))
-
-    def get_device_from_name(self, device_name):
-        device = next((dev for dev in self.devices if dev.name == device_name), None)
-        if device is None:
-            raise ValueError('Device ' + device_name + ' unknown')
-        return device
-
-class Device:
-
-    def __init__(self, line):
-        self.parse_info(line)
-
-    def parse_info(self, line):
-        tokens = line.split(':')
-        self.id = int(tokens[0][1:])
-        self.name = tokens[1]
-        self.operations = [op for op in tokens[2:] if len(op) != 0]
-
-    def get_operation_reference(self, operation_name):
-        try:
-            return self.operations.index(operation_name)
-        except:
-            return -1
