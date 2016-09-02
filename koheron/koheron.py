@@ -38,24 +38,14 @@ def load_instrument(host, instrument='blink', always_restart=False):
     return client
 
 # --------------------------------------------
-# Decorators
+# command decorator
 # --------------------------------------------
-
-# http://stackoverflow.com/questions/5929107/python-decorators-with-parameters
-# http://www.artima.com/weblogs/viewpost.jsp?thread=240845
 
 def command(classname=None, funcname=None):
     def real_command(func):
         def wrapper(self, *args):
-            if classname is None:
-                device_name = self.__class__.__name__
-            else:
-                device_name = classname
-
-            if funcname is None:
-                cmd_name = func.__name__
-            else:
-                cmd_name = funcname
+            device_name = classname or self.__class__.__name__
+            cmd_name = funcname or func.__name__
             device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
             self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
             return func(self, *args)
@@ -271,7 +261,6 @@ class KoheronClient:
 
     def recv_string(self):
         reserved, length = self.recv_tuple('II')
-        assert(reserved == 0)
         return self.recv_all(length)[:-1].decode('utf8')
 
     def recv_json(self):
@@ -287,29 +276,6 @@ class KoheronClient:
         fmt = '>' + fmt
         buff = self.recv_array(struct.calcsize(fmt), dtype='uint8')
         return tuple(struct.unpack(fmt, buff))
-
-    def send_handshaking(self, data, fmt='I', dtype=np.uint32):
-        """ Send data according to the following handshaking protocol
-
-        1) The size of the buffer must have been sent as a
-           command argument to koheron-server before
-        2) koheron-server acknowledges reception readiness by sending
-           the number of points to receive to the client
-        3) The client sends the data buffer
-        """
-        data_recv = self.sock.recv(4)
-        num = struct.unpack(">I", data_recv)[0]
-        n_pts = len(data)
-
-        if num == n_pts:
-            fmt = ('%s'+fmt) % n_pts
-            buff = struct.pack(fmt, *data.astype(dtype))
-            sent = self.sock.send(buff)
-
-            if sent == 0:
-                raise ConnectionError('Failed to send buffer. Socket connection broken.')
-        else:
-            raise ConnectionError('Invalid handshaking')
 
     def __del__(self):
         if hasattr(self, 'sock'):
