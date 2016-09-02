@@ -24,29 +24,17 @@ def version():
 
 @cli.command()
 @click.pass_obj
-@click.argument('led_value', type=click.INT)
-def set_led(conn_type, led_value):
+@click.argument('cmd', nargs=1)
+@click.argument('args', nargs=-1, type=click.INT)
+def common(conn_type, cmd, args):
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     from .common import Common
     driver = Common(client)
-    driver.set_led(led_value)
-    click.echo('Led set to %d' % led_value)
+    func = getattr(driver, cmd, None)
+    if func:
+        click.echo(func(*args))
+    else:
+        click.echo('Command "{}" does not exist'.format(cmd))
 
-@cli.command()
-@click.pass_obj
-def get_led(conn_type):
-    from .koheron import KoheronClient
-    client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
-    from .common import Common
-    driver = Common(client)
-    click.echo(driver.get_led())
 
-@cli.command()
-@click.pass_obj
-def init(conn_type):
-    from .koheron import KoheronClient
-    client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
-    from .common import Common
-    driver = Common(client)
-    driver.init()
