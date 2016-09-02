@@ -32,7 +32,7 @@ def install_instrument(host, instrument_name, always_restart=False):
                 return
     raise ValueError("Instrument " + instrument_name + " not found")
 
-def load_instrument(host, instrument='oscillo', always_restart=False):
+def load_instrument(host, instrument='blink', always_restart=False):
     install_instrument(host, instrument, always_restart=always_restart)
     client = KoheronClient(host)
     return client

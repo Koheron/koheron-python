@@ -44,7 +44,6 @@ def devices(conn_type):
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     click.echo(client.devices_idx)
 
-
 @cli.command()
 @click.pass_obj
 @click.option('--device', default=None)
@@ -56,3 +55,11 @@ def commands(conn_type, device):
     else:
         device_idx = client.devices_idx[device]
         click.echo(client.commands[device_idx])
+
+@cli.command()
+@click.pass_obj
+@click.argument('instrument_name')
+@click.option('--always_restart', is_flag=True)
+def install(conn_type, instrument_name, always_restart):
+    from .koheron import install_instrument
+    install_instrument(conn_type.host, instrument_name, always_restart=always_restart)
