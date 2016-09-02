@@ -1,7 +1,7 @@
 import click
 
 # --------------------------------------------
-# CLI
+# Command Line Interface
 # --------------------------------------------
 
 class ConnectionType(object):
@@ -19,6 +19,7 @@ def cli(ctx, host, unixsock):
 
 @cli.command()
 def version():
+    """ Get the version of koheron python library."""
     from .version import __version__
     click.echo(__version__)
 
@@ -27,6 +28,7 @@ def version():
 @click.argument('cmd', nargs=1)
 @click.argument('args', nargs=-1, type=click.INT)
 def common(conn_type, cmd, args):
+    """ Call the common commands."""
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     from .common import Common
@@ -40,6 +42,7 @@ def common(conn_type, cmd, args):
 @cli.command()
 @click.pass_obj
 def devices(conn_type):
+    """ Get the list of devices."""
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     click.echo(client.devices_idx)
@@ -48,6 +51,7 @@ def devices(conn_type):
 @click.pass_obj
 @click.option('--device', default=None)
 def commands(conn_type, device):
+    """ Get the list of commands for a specified device."""
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     if device is None:
@@ -61,5 +65,6 @@ def commands(conn_type, device):
 @click.argument('instrument_name')
 @click.option('--always_restart', is_flag=True)
 def install(conn_type, instrument_name, always_restart):
+    """Install a given instrument."""
     from .koheron import install_instrument
     install_instrument(conn_type.host, instrument_name, always_restart=always_restart)
