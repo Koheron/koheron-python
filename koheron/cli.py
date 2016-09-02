@@ -37,4 +37,22 @@ def common(conn_type, cmd, args):
     else:
         click.echo('Command "{}" does not exist'.format(cmd))
 
+@cli.command()
+@click.pass_obj
+def devices(conn_type):
+    from .koheron import KoheronClient
+    client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
+    click.echo(client.devices_idx)
 
+
+@cli.command()
+@click.pass_obj
+@click.option('--device', default=None)
+def commands(conn_type, device):
+    from .koheron import KoheronClient
+    client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
+    if device is None:
+        click.echo(client.commands)
+    else:
+        device_idx = client.devices_idx[device]
+        click.echo(client.commands[device_idx])

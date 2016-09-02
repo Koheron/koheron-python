@@ -199,17 +199,17 @@ class KoheronClient:
         except:
             raise ConnectionError('Failed to send initialization command')
 
-        data = self.recv_json()
+        self.commands = self.recv_json()
 
         self.devices_idx = {}
         self.cmds_idx_list = []
         self.cmds_fmt_list = []
 
-        for dev_idx, dev in enumerate(data):
-            self.devices_idx[dev['name']] = dev_idx
+        for dev_idx, device in enumerate(self.commands):
+            self.devices_idx[device['name']] = dev_idx
             cmds_idx = {}
             cmds_fmt = {}
-            for cmd_idx, cmd in enumerate(dev['operations']):
+            for cmd_idx, cmd in enumerate(device['operations']):
                 cmds_idx[cmd['name']] = cmd_idx
                 cmds_fmt[cmd['name']] = cmd['fmt']
             self.cmds_idx_list.append(cmds_idx)
