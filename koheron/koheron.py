@@ -130,20 +130,18 @@ def build_payload(fmt, args):
 # --------------------------------------------
 
 class KoheronClient:
-    """ Client for koheron-server"""
-
     def __init__(self, host="", port=36000, unixsock=""):
-        """ Initialize connection with koheron-server
+        ''' Initialize connection with koheron-server
 
         Args:
             host: A string with the IP address
             port: Port of the TCP connection (must be an integer)
-        """
+        '''
         if type(host) != str:
-            raise TypeError("IP address must be a string")
+            raise TypeError('IP address must be a string')
 
         if type(port) != int:
-            raise TypeError("Port number must be an integer")
+            raise TypeError('Port number must be an integer')
 
         self.host = host
         self.port = port
@@ -178,7 +176,7 @@ class KoheronClient:
                 print('Failed to connect to unix socket address ' + unixsock)
                 self.is_connected = False
         else:
-            raise ValueError("Unknown socket type")
+            raise ValueError('Unknown socket type')
 
         if self.is_connected:
             self.load_devices()
@@ -218,7 +216,7 @@ class KoheronClient:
     def send_command(self, device_id, cmd_id, type_str='', *args):
         cmd = make_command(device_id, cmd_id, type_str, *args)
         if self.sock.send(cmd) == 0:
-            raise ConnectionError("send_command: Socket connection broken")
+            raise ConnectionError('send_command: Socket connection broken')
 
     def recv(self, fmt="I"):
         buff_size = struct.calcsize(fmt)
@@ -245,7 +243,7 @@ class KoheronClient:
         return val == 1
 
     def recv_all(self, n_bytes):
-        """ Receive exactly n_bytes bytes. """
+        '''Receive exactly n_bytes bytes.'''
         data = []
         n_rcv = 0
         while n_rcv < n_bytes:
@@ -256,7 +254,7 @@ class KoheronClient:
                 n_rcv += len(chunk)
                 data.append(chunk)
             except:
-                raise ConnectionError("recv_all: Socket connection broken")
+                raise ConnectionError('recv_all: Socket connection broken')
         return b''.join(data)
 
     def recv_string(self):
@@ -266,8 +264,16 @@ class KoheronClient:
     def recv_json(self):
         return json.loads(self.recv_string())
 
+    def recv_vector(self, dtype='uint32'):
+        '''Receive a numpy array with unknown length.'''
+        dtype = np.dtype(dtype)
+        reserved, length = self.recv_tuple('IQ')
+        assert reserved == 0
+        buff = self.recv_all(length)
+        return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
+
     def recv_array(self, shape, dtype='uint32'):
-        """ Receive a numpy array. """
+        '''Receive a numpy array with known shape.'''
         dtype = np.dtype(dtype)
         buff = self.recv_all(dtype.itemsize * int(np.prod(shape)))
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)

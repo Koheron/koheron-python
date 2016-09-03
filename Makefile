@@ -2,7 +2,7 @@
 TMP = tmp
 
 SERVER_URL = https://github.com/Koheron/koheron-server.git
-SERVER_BRANCH = master
+SERVER_BRANCH = send_vector
 SERVER_DIR = $(TMP)/koheron-server
 SERVER_PYTEST = $(SERVER_DIR)/tests/tests.py
 SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
