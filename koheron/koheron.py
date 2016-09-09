@@ -15,7 +15,7 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
-def install_instrument(host, instrument_name, always_restart=False):
+def install_instrument(host, instrument_name, always_restart=False, verbose=False):
     if not always_restart:
         # Don't restart the instrument if already launched
         current_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
@@ -27,8 +27,8 @@ def install_instrument(host, instrument_name, always_restart=False):
         for name, shas in instruments.items():
             if name == instrument_name and len(shas) > 0:
                 r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-                if int(r.text.split('status:')[1].strip()) < 0:
-                    raise RuntimeError("Instrument " + instrument_name + " launch failed.")
+                if verbose:
+                    print(r.text)
                 return
     raise ValueError("Instrument " + instrument_name + " not found")
 
