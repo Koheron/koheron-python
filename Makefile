@@ -13,6 +13,9 @@ PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
 TESTS_PY = ./tests.py
 
+PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
+CURRENT_VERSION=$(shell python koheron/version.py)
+
 .PHONY: test test_common start_server deploy clean_dist clean_venv clean
 
 # -------------------------------------------------------------------------------------
@@ -64,8 +67,12 @@ test_common:
 # -------------------------------------------------------------------------------------
 
 deploy: clean_dist
+	@echo PYPI_VERSION = $(PYPI_VERSION)
+	@echo CURRENT_VERSION = $(CURRENT_VERSION)
+ifneq ($(PYPI_VERSION),$(CURRENT_VERSION))
 	python setup.py sdist bdist_wheel
 	twine upload -u $(PYPI_USERNAME) -p $(PYPI_PASSWORD) dist/*
+endif
 
 # -------------------------------------------------------------------------------------
 # Clean
