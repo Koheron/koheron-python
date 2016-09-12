@@ -65,7 +65,7 @@ test_common:
 
 deploy: clean_dist
 	python setup.py sdist bdist_wheel
-	twine upload dist/*
+	twine upload -u $(PYPI_USERNAME) -p $(PYPI_PASSWORD) dist/*
 
 # -------------------------------------------------------------------------------------
 # Clean

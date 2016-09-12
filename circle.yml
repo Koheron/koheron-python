@@ -20,3 +20,9 @@ test:
           background: true
     - sleep 5
     - make test
+
+deployment:
+  hub:
+    branch: master
+    commands:
+      - make PYPI_USERNAME=$PYPI_USERNAME PYPI_PASSWORD=$PYPI_PASSWORD deploy
