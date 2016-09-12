@@ -40,7 +40,7 @@ class TestsCommon:
         assert 'board' in config
         assert 'config_registers' in config
         assert 'status_registers' in config
-        assert 'project' in config
+        assert 'instrument' in config
         assert 'xdc' in config
         assert 'parameters' in config
         assert 'cores' in config
