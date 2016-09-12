@@ -14,7 +14,7 @@ PY3_VENV = $(TEST_VENV)/py3
 TESTS_PY = ./tests.py
 
 PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
-CURRENT_VERSION=$(shell python koheron/version.py)
+CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; print(__version__)")
 
 .PHONY: test test_common start_server deploy clean_dist clean_venv clean
 
