@@ -1,13 +1,5 @@
 
 TMP = tmp
-
-SERVER_URL = https://github.com/Koheron/koheron-server.git
-SERVER_BRANCH = master
-SERVER_DIR = $(TMP)/koheron-server
-SERVER_PYTEST = $(SERVER_DIR)/tests/tests.py
-SERVER_BIN = $(SERVER_DIR)/tmp/kserverd
-SERVER_VENV = $(SERVER_DIR)/koheron_server_venv
-
 TEST_VENV = venv
 PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
@@ -16,27 +8,17 @@ TESTS_PY = ./tests.py
 PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
 CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; print(__version__)")
 
-.PHONY: test test_common start_server deploy clean_dist clean_venv clean
+.PHONY: test test_common deploy clean_dist clean_venv clean
 
 # -------------------------------------------------------------------------------------
-# Build and run koheron-server
+# Provides start_koheron_server and stop_koheron_server targets
 # -------------------------------------------------------------------------------------
 
-$(SERVER_DIR):
-	git clone $(SERVER_URL) $(SERVER_DIR)
-	cd $(SERVER_DIR) && git checkout $(SERVER_BRANCH)
-
-$(SERVER_DIR)/requirements.txt: $(SERVER_DIR)
-
-$(SERVER_VENV): $(SERVER_DIR)/requirements.txt
-	virtualenv $(SERVER_VENV)
-	$(SERVER_VENV)/bin/pip install -r $(SERVER_DIR)/requirements.txt
-
-$(SERVER_BIN): $(SERVER_VENV)
-	make -C $(SERVER_DIR) CONFIG=config/config_local.yaml PYTHON=koheron_server_venv/bin/python
-
-start_server: $(SERVER_BIN)
-	make -C $(SERVER_DIR) PYTHON=koheron_server_venv/bin/python start_server
+KOHERON_SERVER_DEST=$(TMP)
+KOHERON_SERVER_MK=build_run.mk
+DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/master/scripts/build_run.mk > $(KOHERON_SERVER_MK))
+include $(KOHERON_SERVER_MK)
+SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/tests.py
 
 # -------------------------------------------------------------------------------------
 # Tests
@@ -88,4 +70,4 @@ clean_venv:
 
 clean: clean_dist
 	rm -rf $(TMP)
-	rm -f $(TESTS_PY)
+	rm -f $(TESTS_PY) $(KOHERON_SERVER_MK)
