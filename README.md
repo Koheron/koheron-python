@@ -17,5 +17,5 @@ The tests are run in virtualenvs (for Python 2 and 3).
 
 Testing `common` driver:
 ```sh
-make NAME=oscillo HOST=192.168.1.100 test_common
+make NAME=led_blinker HOST=192.168.1.100 test_common
 ```
