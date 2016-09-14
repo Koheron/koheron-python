@@ -9,7 +9,7 @@ Koheron Python Library
 
 Testing server emission/reception:
 ```sh
-make start_server
+make start_koheron_server
 make test
 ```
 This test runs locally and starts a server in background. 
