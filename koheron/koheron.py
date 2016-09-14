@@ -15,6 +15,11 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
+def upload_instrument(host, filename):
+	with open(filename, 'rb') as fileobj:
+		url = 'http://{}/api/instruments/upload'.format(host)
+		r = requests.post(url, files={filename: fileobj})
+
 def install_instrument(host, instrument_name, always_restart=False, verbose=False):
     if not always_restart:
         # Don't restart the instrument if already launched

@@ -26,10 +26,10 @@ class TestsCommon:
 
     def test_ip_on_leds(self):
         common.ip_on_leds()
-        assert common.get_led() == ip2long(host)
+        assert common.get_led() == ip2long(host) % 256
 
     def test_get_dna(self):
-        assert len(common.get_dna()) == 14
+        assert common.get_dna() != ''
 
     def test_get_server_version(self):
         assert len(common.get_server_version()) == 7
