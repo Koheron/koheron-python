@@ -68,7 +68,7 @@ def commands(conn_type, device):
 @click.option('--run', is_flag=True)
 def upload(conn_type, instrument_zip, run):
     """Upload instrument.zip"""
-    from .koheron import upload_instrument, run_instrument
+    from .koheron import upload_instrument
     upload_instrument(conn_type.host, instrument_zip, run=run)
 
 @cli.command()
