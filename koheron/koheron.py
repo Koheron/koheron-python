@@ -70,9 +70,9 @@ def connect(host, *args, **kwargs):
     client = KoheronClient(host)
     return client
 
-def load_instrument(host, instrument='blink', restart=False):
+def load_instrument(host, instrument='blink', always_restart=False):
     print('Warning: load_instrument() is deprecated, use connect() instead')
-    run_instrument(host, instrument, restart=restart)
+    run_instrument(host, instrument, restart=always_restart)
     client = KoheronClient(host)
     return client
 
