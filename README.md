@@ -5,6 +5,15 @@
 
 Koheron Python Library
 
+### Develop in a virtualenv
+
+```bash
+virtualenv venv
+source venv/bin/activate
+pip install -e . # Install koheron package
+```
+
+
 ### Running tests
 
 Testing server emission/reception:
