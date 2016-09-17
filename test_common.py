@@ -16,7 +16,7 @@ def ip2long(ip):
     packedIP = socket.inet_aton(ip)
     return struct.unpack("!L", packedIP)[0]
 
-class TestsCommon:
+class TestCommon:
     def test_get_bitstream_id(self):
         assert len(common.get_bitstream_id()) == 64
 
