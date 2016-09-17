@@ -25,19 +25,21 @@ def run_instrument(host, instrument, always_restart=False):
         # Don't restart the instrument if already launched
         current_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
         if current_instrument['name'] == instrument:
-            return
+            client = KoheronClient(host)
+            return client
 
     instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
     if instruments:
         for name, shas in instruments.items():
             if name == instrument and len(shas) > 0:
                 r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-                return
+                client = KoheronClient(host)
+                return client
     raise ValueError('Instrument %s not found' % instrument)
 
 def load_instrument(host, instrument='blink', always_restart=False):
-    run_instrument(host, instrument, always_restart=always_restart)
-    client = KoheronClient(host)
+    client = run_instrument(host, instrument, always_restart=always_restart)
+    print('Warning: deprecated command, use run_instrument() instead')
     return client
 
 # --------------------------------------------

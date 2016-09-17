@@ -1,3 +1,6 @@
 *.pyc
+
 koheron.egg-info/
 venv/
+.cache/
+build_run.mk

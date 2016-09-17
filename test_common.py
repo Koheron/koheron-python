@@ -4,11 +4,11 @@ import socket
 import struct
 import numpy as np
 
-from koheron import KoheronClient, load_instrument, Common
+from koheron import KoheronClient, run_instrument, Common
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
-client = load_instrument(host, project)
+client = run_instrument(host, project)
 common = Common(client)
 
 def ip2long(ip):

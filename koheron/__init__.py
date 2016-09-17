@@ -2,7 +2,8 @@ from .version import __version__
 
 from .koheron import KoheronClient
 from .koheron import command
-from .koheron import load_instrument
+from .koheron import load_instrument # deprecated
+from .koheron import run_instrument
 from .koheron import upload_instrument
 from .common import Common
 
