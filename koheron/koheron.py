@@ -15,35 +15,69 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
-def upload_instrument(host, filename):
-	with open(filename, 'rb') as fileobj:
-		url = 'http://{}/api/instruments/upload'.format(host)
-		r = requests.post(url, files={filename: fileobj})
+def live_instrument(host):
+    live_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
+    name = live_instrument['name']
+    version = live_instrument['sha']
+    return name, version
 
-def install_instrument(host, instrument_name, always_restart=False, verbose=False):
-    if not always_restart:
-        # Don't restart the instrument if already launched
-        current_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
-        if current_instrument['name'] == instrument_name:
-            return
+def get_name_version(filename):
+    # filename = 'name-version.zip'
+    tokens = filename.split('.')[0].split('-')
+    name = '-'.join(tokens[:-1])
+    version = tokens[-1]
+    return name, version
 
-    instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-    if instruments:
-        for name, shas in instruments.items():
-            if name == instrument_name and len(shas) > 0:
-                r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-                if verbose:
-                    print(r.text)
-                return
-    raise ValueError("Instrument " + instrument_name + " not found")
+def upload_instrument(host, filename, run=False):
+    with open(filename, 'rb') as fileobj:
+        url = 'http://{}/api/instruments/upload'.format(host)
+        r = requests.post(url, files={filename: fileobj})
+    if run:
+        name, version = get_name_version(filename)
+        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
+
+def run_instrument(host, name=None, version=None, restart=False):
+    instrument_running = False
+    instrument_in_store = False
+
+    live_name, live_version = live_instrument(host)
+    name_ok = (live_name == name)
+    version_ok = ((version is None) or (live_version == version))
+    
+    if (name is None) or (name_ok and version_ok): # Instrument already running
+        name, version = live_name, live_version
+        instrument_running = True
+
+    if not instrument_running: # Find the instrument in the local store:
+        instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
+        versions = instruments.get(name)
+        if versions is None:
+            raise ValueError('Instrument %s not found' % name)
+
+        if version is None:
+            # Use the first version found by default
+            version = versions[0]
+        if version in versions:
+            instrument_in_store = True
+        else:
+            raise ValueError('Did not found version {} for instrument {}'.format(version, name))
+
+    if instrument_in_store or (instrument_running and restart):
+        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
+
+def connect(host, *args, **kwargs):
+    run_instrument(host, *args, **kwargs)
+    client = KoheronClient(host)
+    return client
 
 def load_instrument(host, instrument='blink', always_restart=False):
-    install_instrument(host, instrument, always_restart=always_restart)
+    print('Warning: load_instrument() is deprecated, use connect() instead')
+    run_instrument(host, instrument, restart=always_restart)
     client = KoheronClient(host)
     return client
 
 # --------------------------------------------
-# command decorator
+# Command decorator
 # --------------------------------------------
 
 def command(classname=None, funcname=None):
