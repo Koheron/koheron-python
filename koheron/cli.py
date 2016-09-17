@@ -60,11 +60,22 @@ def commands(conn_type, device):
         device_idx = client.devices_idx[device]
         click.echo(client.commands[device_idx])
 
+# Commands that call the HTTP API:
+
+@cli.command()
+@click.pass_obj
+@click.argument('instrument_zip')
+@click.option('--run', is_flag=True)
+def upload(conn_type, instrument_zip, run):
+    """Upload instrument.zip"""
+    from .koheron import upload_instrument, run_instrument
+    upload_instrument(conn_type.host, instrument_zip, run=run)
+
 @cli.command()
 @click.pass_obj
 @click.argument('instrument_name')
 @click.option('--always_restart', is_flag=True)
-def install(conn_type, instrument_name, always_restart):
-    """Install a given instrument."""
-    from .koheron import install_instrument
-    install_instrument(conn_type.host, instrument_name, always_restart=always_restart)
+def run(conn_type, instrument_name, always_restart):
+    """Run a given instrument."""
+    from .koheron import run_instrument
+    run_instrument(conn_type.host, instrument_name, always_restart=always_restart)

@@ -15,31 +15,50 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
-def upload_instrument(host, filename):
-	with open(filename, 'rb') as fileobj:
-		url = 'http://{}/api/instruments/upload'.format(host)
-		r = requests.post(url, files={filename: fileobj})
+def upload_instrument(host, filename, run=False):
+    with open(filename, 'rb') as fileobj:
+        url = 'http://{}/api/instruments/upload'.format(host)
+        r = requests.post(url, files={filename: fileobj})
+    if run:
+        tokens = filename.split('.')[0].split('-')
+        instrument = '-'.join(tokens[:-1])
+        sha = tokens[-1]
+        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, instrument, sha))
 
-def run_instrument(host, instrument, always_restart=False):
-    if always_restart is False:
-        # Don't restart the instrument if already launched
-        current_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
-        if current_instrument['name'] == instrument:
-            client = KoheronClient(host)
-            return client
+def run_instrument(host, instrument, sha=None, always_restart=False):
+    instrument_found = False
+    live_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
+    name_ok = (live_instrument['name'] == instrument)
+    sha_ok = ((sha is None) or (live_instrument['sha'] == sha))
+    if name_ok and sha_ok: # Instrument already running
+        instrument_found = True
+        if always_restart:
+            r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, instrument, sha))
 
-    instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-    if instruments:
-        for name, shas in instruments.items():
-            if name == instrument and len(shas) > 0:
-                r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-                client = KoheronClient(host)
-                return client
-    raise ValueError('Instrument %s not found' % instrument)
+    else: # Find the instrument in the local store and run it:
+        instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
+        if instruments:
+            for name, shas in instruments.items():
+                if name == instrument and len(shas) > 0:
+                    instrument_found = True                    
+                    r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
+    if not instrument_found:
+        raise ValueError('Instrument %s not found' % instrument)
+    client = KoheronClient(host)
+    return client
+
+def connect(host, instrument=None, sha=None, always_restart=False):
+    if instrument is None:
+        client = KoheronClient(host)
+    else:
+        client = run_instrument(host, instrument, sha=sha, always_restart=always_restart)
+    print('Warning: deprecated command, use run_instrument() instead')
+    return client
 
 def load_instrument(host, instrument='blink', always_restart=False):
-    client = run_instrument(host, instrument, always_restart=always_restart)
-    print('Warning: deprecated command, use run_instrument() instead')
+    print('Warning: deprecated command, use connect() instead')
+    run_instrument(host, instrument, always_restart=always_restart)
+    client = KoheronClient(host)
     return client
 
 # --------------------------------------------
