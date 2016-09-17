@@ -20,30 +20,28 @@ def upload_instrument(host, filename):
 		url = 'http://{}/api/instruments/upload'.format(host)
 		r = requests.post(url, files={filename: fileobj})
 
-def install_instrument(host, instrument_name, always_restart=False, verbose=False):
-    if not always_restart:
+def run_instrument(host, instrument, always_restart=False):
+    if always_restart is False:
         # Don't restart the instrument if already launched
         current_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
-        if current_instrument['name'] == instrument_name:
+        if current_instrument['name'] == instrument:
             return
 
     instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
     if instruments:
         for name, shas in instruments.items():
-            if name == instrument_name and len(shas) > 0:
+            if name == instrument and len(shas) > 0:
                 r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-                if verbose:
-                    print(r.text)
                 return
-    raise ValueError("Instrument " + instrument_name + " not found")
+    raise ValueError('Instrument %s not found' % instrument)
 
 def load_instrument(host, instrument='blink', always_restart=False):
-    install_instrument(host, instrument, always_restart=always_restart)
+    run_instrument(host, instrument, always_restart=always_restart)
     client = KoheronClient(host)
     return client
 
 # --------------------------------------------
-# command decorator
+# Command decorator
 # --------------------------------------------
 
 def command(classname=None, funcname=None):
