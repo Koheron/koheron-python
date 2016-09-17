@@ -15,6 +15,12 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
+def live_instrument(host):
+    live_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
+    name = live_instrument['name']
+    version = live_instrument['sha']
+    return name, version
+
 def upload_instrument(host, filename, run=False):
     with open(filename, 'rb') as fileobj:
         url = 'http://{}/api/instruments/upload'.format(host)
@@ -25,35 +31,44 @@ def upload_instrument(host, filename, run=False):
         version = tokens[-1]
         r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, instrument, version))
 
-def run_instrument(host, instrument, version=None, always_restart=False):
-    instrument_found = False
-    live_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
-    name_ok = (live_instrument['name'] == instrument)
-    version_ok = ((version is None) or (live_instrument['sha'] == version))
-    if name_ok and version_ok: # Instrument already running
-        instrument_found = True
-        if always_restart:
-            r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, instrument, version))
+def run_instrument(host, instrument=None, version=None, restart=False):
+    instrument_running = False
+    instrument_in_store = False
 
-    else: # Find the instrument in the local store and run it:
+    live_name, live_version = live_instrument(host)
+    name_ok = (live_name == instrument)
+    version_ok = ((version is None) or (live_version == version))
+    
+    if (instrument is None) or (name_ok and version_ok): # Instrument already running
+        name, version = live_name, live_version
+        instrument_running = True
+
+    if not instrument_running: # Find the instrument in the local store:
         instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-        if instruments:
-            for name, shas in instruments.items():
-                if name == instrument and len(shas) > 0:
-                    instrument_found = True                    
-                    r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, shas[0]))
-    if not instrument_found:
-        raise ValueError('Instrument %s not found' % instrument)
+        name = instrument
+        versions = instruments.get(name)
+        if versions is None:
+            raise ValueError('Instrument %s not found' % instrument)
 
-def connect(host, instrument=None, version=None, always_restart=False):
-    if instrument:
-        run_instrument(host, instrument, version=version, always_restart=always_restart)
+        if version is None:
+            # Use the first version found by default
+            version = versions[0]
+        if version in versions:
+            instrument_in_store = True
+        else:
+            raise ValueError('Did not found version {} for instrument {}'.format(version, instrument))
+
+    if instrument_in_store or (instrument_running and restart):
+        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
+
+def connect(host, *args, **kwargs):
+    run_instrument(host, *args, **kwargs)
     client = KoheronClient(host)
     return client
 
-def load_instrument(host, instrument='blink', always_restart=False):
+def load_instrument(host, instrument='blink', restart=False):
     print('Warning: load_instrument() is deprecated, use connect() instead')
-    run_instrument(host, instrument, always_restart=always_restart)
+    run_instrument(host, instrument, restart=restart)
     client = KoheronClient(host)
     return client
 

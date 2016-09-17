@@ -73,9 +73,10 @@ def upload(conn_type, instrument_zip, run):
 
 @cli.command()
 @click.pass_obj
-@click.argument('instrument_name')
-@click.option('--always_restart', is_flag=True)
-def run(conn_type, instrument_name, always_restart):
+@click.argument('instrument_name', required=False)
+@click.argument('instrument_version', required=False)
+@click.option('--restart', is_flag=True)
+def run(conn_type, instrument_name, instrument_version, restart):
     """Run a given instrument."""
     from .koheron import run_instrument
-    run_instrument(conn_type.host, instrument_name, always_restart=always_restart)
+    run_instrument(conn_type.host, instrument_name, instrument_version, restart=restart)
