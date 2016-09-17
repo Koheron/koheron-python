@@ -1,1 +1,3 @@
 *.pyc
+koheron.egg-info/
+venv/
