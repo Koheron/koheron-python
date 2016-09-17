@@ -21,34 +21,38 @@ def live_instrument(host):
     version = live_instrument['sha']
     return name, version
 
+def get_name_version(filename):
+    # filename = 'name-version.zip'
+    tokens = filename.split('.')[0].split('-')
+    name = '-'.join(tokens[:-1])
+    version = tokens[-1]
+    return name, version
+
 def upload_instrument(host, filename, run=False):
     with open(filename, 'rb') as fileobj:
         url = 'http://{}/api/instruments/upload'.format(host)
         r = requests.post(url, files={filename: fileobj})
     if run:
-        tokens = filename.split('.')[0].split('-')
-        instrument = '-'.join(tokens[:-1])
-        version = tokens[-1]
-        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, instrument, version))
+        name, version = get_name_version(filename)
+        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
 
-def run_instrument(host, instrument=None, version=None, restart=False):
+def run_instrument(host, name=None, version=None, restart=False):
     instrument_running = False
     instrument_in_store = False
 
     live_name, live_version = live_instrument(host)
-    name_ok = (live_name == instrument)
+    name_ok = (live_name == name)
     version_ok = ((version is None) or (live_version == version))
     
-    if (instrument is None) or (name_ok and version_ok): # Instrument already running
+    if (name is None) or (name_ok and version_ok): # Instrument already running
         name, version = live_name, live_version
         instrument_running = True
 
     if not instrument_running: # Find the instrument in the local store:
         instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-        name = instrument
         versions = instruments.get(name)
         if versions is None:
-            raise ValueError('Instrument %s not found' % instrument)
+            raise ValueError('Instrument %s not found' % name)
 
         if version is None:
             # Use the first version found by default
@@ -56,7 +60,7 @@ def run_instrument(host, instrument=None, version=None, restart=False):
         if version in versions:
             instrument_in_store = True
         else:
-            raise ValueError('Did not found version {} for instrument {}'.format(version, instrument))
+            raise ValueError('Did not found version {} for instrument {}'.format(version, name))
 
     if instrument_in_store or (instrument_running and restart):
         r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))

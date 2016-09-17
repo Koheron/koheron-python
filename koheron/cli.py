@@ -64,6 +64,14 @@ def commands(conn_type, device):
 
 @cli.command()
 @click.pass_obj
+def live(conn_type):
+    """Get name and version of live instrument"""
+    from .koheron import live_instrument
+    name, version = live_instrument(conn_type.host)
+    click.echo('{}-{}'.format(name, version))
+
+@cli.command()
+@click.pass_obj
 @click.argument('instrument_zip')
 @click.option('--run', is_flag=True)
 def upload(conn_type, instrument_zip, run):
