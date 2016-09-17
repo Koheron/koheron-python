@@ -40,8 +40,8 @@ test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v $(TESTS_PY)
 
 test_common:
-	python -m pytest -v tests_common.py
-	python3 -m pytest -v tests_common.py
+	python -m pytest -v test_common.py
+	python3 -m pytest -v test_common.py
 	cat server.log
 
 # -------------------------------------------------------------------------------------
