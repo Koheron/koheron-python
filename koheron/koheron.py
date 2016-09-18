@@ -85,8 +85,8 @@ def command(classname=None, funcname=None):
         def wrapper(self, *args):
             device_name = classname or self.__class__.__name__
             cmd_name = funcname or func.__name__
-            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
-            self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
+            device_id, cmd_id, cmd_args = self.client.get_ids(device_name, cmd_name)
+            self.client.send_command(device_id, cmd_id, cmd_args, *args)
             return func(self, *args)
         return wrapper
     return real_command
@@ -130,37 +130,37 @@ def float_to_bits(f):
 def double_to_bits(d):
     return struct.unpack('>q', struct.pack('>d', d))[0]
 
-def build_payload(fmt, args):
+def build_payload(cmd_args, args):
     size = 0
     payload = bytearray()
-    assert len(fmt) == len(args)
-    for i, type_ in enumerate(fmt):
-        if type_ in ['B','b']:
+    assert len(cmd_args) == len(args)
+    for i, arg in enumerate(cmd_args):
+        if arg['type'] in ['uint8_t','int8_t']:
             size += append(payload, args[i], 1)
-        elif type_ in ['H','h']:
+        elif arg['type'] in ['uint16_t','int16_t']:
             size += append(payload, args[i], 2)
-        elif type_ in ['I','i']:
+        elif arg['type'] in ['uint32_t','int32_t']:
             size += append(payload, args[i], 4)
-        elif type_ in ['Q','q']:
+        elif arg['type'] in ['uint64_t','int64_t']:
             size += append(payload, args[i], 8)
-        elif type_ is 'f':
+        elif arg['type'] == 'float':
             size += append(payload, float_to_bits(args[i]), 4)
-        elif type_ is 'd':
+        elif arg['type'] == 'double':
             size += append(payload, double_to_bits(args[i]), 8)
-        elif type_ is '?': # bool
+        elif arg['type'] == 'bool':
             if args[i]:
                 size += append(payload, 1, 1)
             else:
                 size += append(payload, 0, 1)
-        elif type_ is 'A':
+        elif arg['type'].split('<')[0].strip() == 'std::array':
             size += append_array(payload, args[i])
-        elif type_ is 'V':
+        elif arg['type'].split('<')[0].strip() == 'std::vector':
             size += append(payload, len(args[i]), 8)
             append_array(payload, args[i])
-            payload.extend(build_payload(fmt[i+1:], args[i+1:])[0])
+            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
         else:
-            raise ValueError('Unsupported type "' + type_ + '"')
+            raise ValueError('Unsupported type "' + arg['type'] + '"')
 
     return payload, size
 
@@ -230,30 +230,30 @@ class KoheronClient:
 
         self.devices_idx = {}
         self.cmds_idx_list = []
-        self.cmds_fmt_list = []
+        self.cmds_args_list = []
 
         for dev_idx, device in enumerate(self.commands):
             self.devices_idx[device['name']] = dev_idx
             cmds_idx = {}
-            cmds_fmt = {}
+            cmds_args = {}
             for cmd_idx, cmd in enumerate(device['operations']):
                 cmds_idx[cmd['name']] = cmd_idx
-                cmds_fmt[cmd['name']] = cmd['fmt']
+                cmds_args[cmd['name']] = cmd['args']
             self.cmds_idx_list.append(cmds_idx)
-            self.cmds_fmt_list.append(cmds_fmt)
+            self.cmds_args_list.append(cmds_args)
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]
         cmd_id = self.cmds_idx_list[device_id][command_name]
-        cmd_fmt = str(self.cmds_fmt_list[device_id][command_name])
-        return device_id, cmd_id, cmd_fmt
+        cmd_args = self.cmds_args_list[device_id][command_name]
+        return device_id, cmd_id, cmd_args
 
     # -------------------------------------------------------
     # Send/Receive
     # -------------------------------------------------------
 
-    def send_command(self, device_id, cmd_id, type_str='', *args):
-        cmd = make_command(device_id, cmd_id, type_str, *args)
+    def send_command(self, device_id, cmd_id, cmd_args=[], *args):
+        cmd = make_command(device_id, cmd_id, cmd_args, *args)
         if self.sock.send(cmd) == 0:
             raise ConnectionError('send_command: Socket connection broken')
 

@@ -32,7 +32,7 @@ $(PY3_VENV): requirements.txt
 	virtualenv -p python3 $(PY3_VENV)
 	$(PY3_VENV)/bin/pip3 install -r requirements.txt
 
-$(TESTS_PY): $(SERVER_DIR)
+$(TESTS_PY): $(KOHERON_SERVER_DIR)
 	cp $(SERVER_PYTEST) $(TESTS_PY)
 
 test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
