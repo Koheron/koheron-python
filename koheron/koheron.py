@@ -127,6 +127,10 @@ def append_array(buff, array, array_params):
         raise ValueError('Invalid array length. Expected {} but received {}.'
                          .format(array_params['N'], len(array)))
 
+    if cpp_to_np_types[array_params['T']] != array.dtype:
+        raise TypeError('Invalid array type. Expected {} but received {}.'
+                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+
     arr_bytes = bytearray(array)
     buff += arr_bytes
     return len(arr_bytes)
@@ -183,6 +187,16 @@ def get_std_vector_params(arg):
     return {
       'T': arg['type'].split('<')[1].split('>')[0].strip()
     }
+
+cpp_to_np_types = {
+  'bool': 'bool',
+  'uint8_t': 'uint8', 'int8_t': 'int8',
+  'uint16_t': 'uint16', 'int16_t': 'int16',
+  'uint32_t': 'uint32', 'int32_t': 'int32',
+  'uint64_t': 'uint64', 'int64_t': 'int64',
+  'float': 'float32',
+  'double': 'float64'
+}
 
 # --------------------------------------------
 # KoheronClient
