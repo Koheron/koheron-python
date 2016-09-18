@@ -118,7 +118,11 @@ def append(buff, value, size):
         append(buff, value >> 32, 4)
     return size
 
-def append_array(buff, array):
+def append_array(buff, array, array_params):
+    if 'N' in array_params and array_params['N'] != len(array):
+        raise ValueError('Invalid array length. Expected {} but received {}.'
+                         .format(array_params['N'], len(array)))
+
     arr_bytes = bytearray(array)
     buff += arr_bytes
     return len(arr_bytes)
@@ -153,16 +157,28 @@ def build_payload(cmd_args, args):
             else:
                 size += append(payload, 0, 1)
         elif arg['type'].split('<')[0].strip() == 'std::array':
-            size += append_array(payload, args[i])
+            size += append_array(payload, args[i], get_std_array_params(arg))
         elif arg['type'].split('<')[0].strip() == 'std::vector':
             size += append(payload, len(args[i]), 8)
-            append_array(payload, args[i])
+            append_array(payload, args[i], get_std_vector_params(arg))
             payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
     return payload, size
+
+def get_std_array_params(arg):
+    templates = arg['type'].split('<')[1].split('>')[0].split(',')
+    return {
+      'T': templates[0].strip(),
+      'N': int(templates[1].strip())
+    }
+
+def get_std_vector_params(arg):
+    return {
+      'T': arg['type'].split('<')[1].split('>')[0].strip()
+    }
 
 # --------------------------------------------
 # KoheronClient
