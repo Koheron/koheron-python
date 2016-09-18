@@ -119,7 +119,11 @@ def append(buff, value, size):
     return size
 
 def append_array(buff, array, array_params):
-    if 'N' in array_params and array_params['N'] != len(array):
+    # We check the std::array length only if N is an explicit numeric value.
+    # The N template argument might come from a define or a constexpr function
+    # in which case it will be dificult to know the value without compiler help.
+    # Ex. N = WFM_SIZE/2 won't be checked.
+    if 'N' in array_params and array_params['N'].isdigit() and int(array_params['N']) != len(array):
         raise ValueError('Invalid array length. Expected {} but received {}.'
                          .format(array_params['N'], len(array)))
 
@@ -172,7 +176,7 @@ def get_std_array_params(arg):
     templates = arg['type'].split('<')[1].split('>')[0].split(',')
     return {
       'T': templates[0].strip(),
-      'N': int(templates[1].strip())
+      'N': templates[1].strip()
     }
 
 def get_std_vector_params(arg):
