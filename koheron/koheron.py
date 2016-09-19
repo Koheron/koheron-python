@@ -9,6 +9,8 @@ import json
 import requests
 import time
 
+import pprint
+
 ConnectionError = requests.ConnectionError
 
 # --------------------------------------------
@@ -119,11 +121,7 @@ def append(buff, value, size):
     return size
 
 def append_array(buff, array, array_params):
-    # We check the std::array length only if N is an explicit numeric value.
-    # The N template argument might come from a define or a constexpr function
-    # in which case it will be difficult to know the value without compiler help.
-    # Ex. N = WFM_SIZE/2 won't be checked.
-    if 'N' in array_params and array_params['N'].isdigit() and int(array_params['N']) != len(array):
+    if 'N' in array_params and int(array_params['N']) != len(array):
         raise ValueError('Invalid array length. Expected {} but received {}.'
                          .format(array_params['N'], len(array)))
 
@@ -259,6 +257,7 @@ class KoheronClient:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json()
+        # pprint.pprint(self.commands)
         self.devices_idx = {}
         self.cmds_idx_list = [None]*(2 + len(self.commands))
         self.cmds_args_list = [None]*(2 + len(self.commands))
