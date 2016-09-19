@@ -259,20 +259,19 @@ class KoheronClient:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json()
-
         self.devices_idx = {}
-        self.cmds_idx_list = []
-        self.cmds_args_list = []
+        self.cmds_idx_list = [None]*(2 + len(self.commands))
+        self.cmds_args_list = [None]*(2 + len(self.commands))
 
-        for dev_idx, device in enumerate(self.commands):
-            self.devices_idx[device['name']] = dev_idx
+        for device in self.commands:
+            self.devices_idx[device['class']] = device['id']
             cmds_idx = {}
             cmds_args = {}
-            for cmd_idx, cmd in enumerate(device['operations']):
-                cmds_idx[cmd['name']] = cmd_idx
+            for cmd in device['functions']:
+                cmds_idx[cmd['name']] = cmd['id']
                 cmds_args[cmd['name']] = cmd['args']
-            self.cmds_idx_list.append(cmds_idx)
-            self.cmds_args_list.append(cmds_args)
+            self.cmds_idx_list[device['id']] = cmds_idx
+            self.cmds_args_list[device['id']] = cmds_args
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]

@@ -26,12 +26,10 @@ SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/tests.py
 # -------------------------------------------------------------------------------------
 
 $(PY2_VENV): requirements.txt
-	virtualenv $(PY2_VENV)
-	$(PY2_VENV)/bin/pip install -r requirements.txt
+	test -d $(PY2_ENV) || (virtualenv $(PY2_ENV) && $(PY2_ENV)/bin/pip install -r tests/requirements.txt)
 
 $(PY3_VENV): requirements.txt
-	virtualenv -p python3 $(PY3_VENV)
-	$(PY3_VENV)/bin/pip3 install -r requirements.txt
+	test -d $(PY3_ENV) || (virtualenv -p python3 $(PY3_ENV) && $(PY3_ENV)/bin/pip3 install -r tests/requirements.txt)
 
 $(TESTS_PY): $(KOHERON_SERVER_DIR)
 	cp $(SERVER_PYTEST) $(TESTS_PY)
