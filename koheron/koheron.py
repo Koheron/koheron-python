@@ -284,9 +284,9 @@ class KoheronClient:
         cmd_args = self.cmds_args_list[device_id][command_name]
         return device_id, cmd_id, cmd_args
 
-    def check_ret_type(self, expected_type):
+    def check_ret_type(self, expected_types):
         device_id = self.devices_idx[self.last_device_called]
-        assert self.cmds_ret_types_list[device_id][self.last_cmd_called] == expected_type
+        assert self.cmds_ret_types_list[device_id][self.last_cmd_called] in expected_types
 
     # -------------------------------------------------------
     # Send/Receive
@@ -318,27 +318,27 @@ class KoheronClient:
         return struct.unpack(fmt, data_recv)[0]
 
     def recv_uint32(self):
-        self.check_ret_type('uint32_t')
+        self.check_ret_type(['uint32_t', 'unsigned int'])
         return self.recv()
 
     def recv_uint64(self):
-        self.check_ret_type('uint64_t')
+        self.check_ret_type(['uint64_t', 'unsigned long'])
         return self.recv(fmt='Q')
 
     def recv_int32(self):
-        self.check_ret_type('int32_t')
+        self.check_ret_type(['int32_t', 'int'])
         return self.recv(fmt='i')
 
     def recv_float(self):
-        self.check_ret_type('float')
+        self.check_ret_type(['float'])
         return self.recv(fmt='f')
 
     def recv_double(self):
-        self.check_ret_type('double')
+        self.check_ret_type(['double'])
         return self.recv(fmt='d')
 
     def recv_bool(self):
-        self.check_ret_type('bool')
+        self.check_ret_type(['bool'])
         val = self.recv()
         return val == 1
 
