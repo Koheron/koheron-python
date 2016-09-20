@@ -286,7 +286,9 @@ class KoheronClient:
 
     def check_ret_type(self, expected_types):
         device_id = self.devices_idx[self.last_device_called]
-        assert self.cmds_ret_types_list[device_id][self.last_cmd_called] in expected_types
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if ret_type not in expected_types:
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
     # -------------------------------------------------------
     # Send/Receive
