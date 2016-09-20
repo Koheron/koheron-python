@@ -89,6 +89,8 @@ def command(classname=None, funcname=None):
             cmd_name = funcname or func.__name__
             device_id, cmd_id, cmd_args = self.client.get_ids(device_name, cmd_name)
             self.client.send_command(device_id, cmd_id, cmd_args, *args)
+            self.client.last_device_called = device_name
+            self.client.last_cmd_called = cmd_name
             return func(self, *args)
         return wrapper
     return real_command
@@ -257,26 +259,34 @@ class KoheronClient:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json()
-        # pprint.pprint(self.commands)
+        pprint.pprint(self.commands)
         self.devices_idx = {}
         self.cmds_idx_list = [None]*(2 + len(self.commands))
         self.cmds_args_list = [None]*(2 + len(self.commands))
+        self.cmds_ret_types_list = [None]*(2 + len(self.commands))
 
         for device in self.commands:
             self.devices_idx[device['class']] = device['id']
             cmds_idx = {}
             cmds_args = {}
+            cmds_ret_type = {}
             for cmd in device['functions']:
                 cmds_idx[cmd['name']] = cmd['id']
                 cmds_args[cmd['name']] = cmd['args']
+                cmds_ret_type[cmd['name']] = cmd.get('ret_type', None)
             self.cmds_idx_list[device['id']] = cmds_idx
             self.cmds_args_list[device['id']] = cmds_args
+            self.cmds_ret_types_list[device['id']] = cmds_ret_type
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]
         cmd_id = self.cmds_idx_list[device_id][command_name]
         cmd_args = self.cmds_args_list[device_id][command_name]
         return device_id, cmd_id, cmd_args
+
+    def check_ret_type(self, expected_type):
+        device_id = self.devices_idx[self.last_device_called]
+        assert self.cmds_ret_types_list[device_id][self.last_cmd_called] == expected_type
 
     # -------------------------------------------------------
     # Send/Receive
@@ -286,30 +296,6 @@ class KoheronClient:
         cmd = make_command(device_id, cmd_id, cmd_args, *args)
         if self.sock.send(cmd) == 0:
             raise ConnectionError('send_command: Socket connection broken')
-
-    def recv(self, fmt="I"):
-        buff_size = struct.calcsize(fmt)
-        data_recv = self.sock.recv(buff_size)
-        return struct.unpack(fmt, data_recv)[0]
-
-    def recv_uint32(self):
-        return self.recv()
-
-    def recv_uint64(self):
-        return self.recv(fmt='Q')
-
-    def recv_int32(self):
-        return self.recv(fmt='i')
-
-    def recv_float(self):
-        return self.recv(fmt='f')
-
-    def recv_double(self):
-        return self.recv(fmt='d')
-
-    def recv_bool(self):
-        val = self.recv()
-        return val == 1
 
     def recv_all(self, n_bytes):
         '''Receive exactly n_bytes bytes.'''
@@ -325,6 +311,36 @@ class KoheronClient:
             except:
                 raise ConnectionError('recv_all: Socket connection broken')
         return b''.join(data)
+
+    def recv(self, fmt="I"):
+        buff_size = struct.calcsize(fmt)
+        data_recv = self.sock.recv(buff_size)
+        return struct.unpack(fmt, data_recv)[0]
+
+    def recv_uint32(self):
+        self.check_ret_type('uint32_t')
+        return self.recv()
+
+    def recv_uint64(self):
+        self.check_ret_type('uint64_t')
+        return self.recv(fmt='Q')
+
+    def recv_int32(self):
+        self.check_ret_type('int32_t')
+        return self.recv(fmt='i')
+
+    def recv_float(self):
+        self.check_ret_type('float')
+        return self.recv(fmt='f')
+
+    def recv_double(self):
+        self.check_ret_type('double')
+        return self.recv(fmt='d')
+
+    def recv_bool(self):
+        self.check_ret_type('bool')
+        val = self.recv()
+        return val == 1
 
     def recv_string(self):
         reserved, length = self.recv_tuple('II')
