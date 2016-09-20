@@ -27,7 +27,7 @@ EXCEPTION_SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/exception_tests.py
 # -------------------------------------------------------------------------------------
 
 $(PY2_VENV): requirements.txt
-	test -d $(PY2_VENV) || virtualenv $(PY2_VENV) && $(PY2_VENV)/bin/pip install -r requirements.txt
+	test -d $(PY2_VENV) || (virtualenv $(PY2_VENV) && $(PY2_VENV)/bin/pip install -r requirements.txt)
 
 $(PY3_VENV): requirements.txt
 	test -d $(PY3_VENV) || (virtualenv -p python3 $(PY3_VENV) && $(PY3_VENV)/bin/pip3 install -r requirements.txt)

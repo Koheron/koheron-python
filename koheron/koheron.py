@@ -189,7 +189,7 @@ def get_std_array_params(_type):
     templates = _type.split('<')[1].split('>')[0].split(',')
     return {
       'T': templates[0].strip(),
-      'N': templates[1].strip()
+      'N': templates[1].split('ul')[0].strip()
     }
 
 def get_std_vector_params(_type):
@@ -199,7 +199,8 @@ cpp_to_np_types = {
   'bool': 'bool',
   'uint8_t': 'uint8', 'int8_t': 'int8',
   'uint16_t': 'uint16', 'int16_t': 'int16',
-  'uint32_t': 'uint32', 'int32_t': 'int32',
+  'uint32_t': 'uint32', 'unsigned int': 'uint32',
+  'int32_t': 'int32', 'int': 'int32',
   'uint64_t': 'uint64', 'int64_t': 'int64',
   'float': 'float32',
   'double': 'float64'
@@ -299,12 +300,16 @@ class KoheronClient:
         if ret_type not in expected_types:
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
-    # TODO add length check
-    def check_ret_array(self):
+    def check_ret_array(self, dtype, arr_len):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_array(ret_type):
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+        params = get_std_array_params(ret_type)
+        if dtype != cpp_to_np_types[params['T']]:
+            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
+        if arr_len != int(params['N']):
+            raise ValueError('{}::{} expects {} elements.'.format(self.last_device_called, self.last_cmd_called, params['N']))
 
     def check_ret_vector(self, dtype):
         device_id = self.devices_idx[self.last_device_called]
@@ -400,7 +405,13 @@ class KoheronClient:
     def recv_array(self, shape, dtype='uint32', check_type=True):
         '''Receive a numpy array with known shape.'''
         if check_type:
-            self.check_ret_array()
+            if isinstance(shape, tuple):
+                arr_len = 1
+                for val in shape:
+                    arr_len *= val
+            else:
+                arr_len = shape
+            self.check_ret_array(dtype, arr_len)
         dtype = np.dtype(dtype)
         buff = self.recv_all(dtype.itemsize * int(np.prod(shape)))
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
