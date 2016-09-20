@@ -245,17 +245,15 @@ class KoheronClient:
                 # Connect to Kserver
                 self.sock.connect((host, port))
                 self.is_connected = True
-            except socket.error as e:
-                print('Failed to connect to {:s}:{:d} : {:s}'.format(host, port, e))
-                self.is_connected = False
+            except BaseException as e:
+                raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
         elif unixsock != "":
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
                 self.is_connected = True
-            except socket.error as e:
-                print('Failed to connect to unix socket address ' + unixsock)
-                self.is_connected = False
+            except BaseException as e:
+                raise ConnectionError('Failed to connect to unix socket address ' + unixsock)
         else:
             raise ValueError('Unknown socket type')
 
