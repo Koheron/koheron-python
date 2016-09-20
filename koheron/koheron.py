@@ -267,7 +267,7 @@ class KoheronClient:
         except:
             raise ConnectionError('Failed to send initialization command')
 
-        self.commands = self.recv_json()
+        self.commands = self.recv_json(check_type=False)
         pprint.pprint(self.commands)
         self.devices_idx = {}
         self.cmds_idx_list = [None]*(2 + len(self.commands))
@@ -373,12 +373,16 @@ class KoheronClient:
         val = self.recv()
         return val == 1
 
-    def recv_string(self):
+    def recv_string(self, check_type=True):
+        if check_type:
+            self.check_ret_type(['std::string', 'const char *', 'const char*'])
         reserved, length = self.recv_tuple('II', check_type=False)
         return self.recv_all(length)[:-1].decode('utf8')
 
-    def recv_json(self):
-        return json.loads(self.recv_string())
+    def recv_json(self, check_type=True):
+        if check_type:
+            self.check_ret_type(['std::string', 'const char *', 'const char*'])
+        return json.loads(self.recv_string(check_type=False))
 
     def recv_vector(self, dtype='uint32', check_type=True):
         '''Receive a numpy array with unknown length.'''
