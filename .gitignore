@@ -4,3 +4,5 @@ koheron.egg-info/
 venv/
 .cache/
 build_run.mk
+tests.py
+exception_tests.py

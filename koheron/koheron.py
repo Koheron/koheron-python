@@ -165,10 +165,10 @@ def build_payload(cmd_args, args):
             else:
                 size += append(payload, 0, 1)
         elif is_std_array(arg['type']):
-            size += append_array(payload, args[i], get_std_array_params(arg))
+            size += append_array(payload, args[i], get_std_array_params(arg['type']))
         elif is_std_vector(arg['type']):
             size += append(payload, len(args[i]), 8)
-            append_array(payload, args[i], get_std_vector_params(arg))
+            append_array(payload, args[i], get_std_vector_params(arg['type']))
             payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
         else:
@@ -185,15 +185,15 @@ def is_std_vector(_type):
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
 
-def get_std_array_params(arg):
-    templates = arg['type'].split('<')[1].split('>')[0].split(',')
+def get_std_array_params(_type):
+    templates = _type.split('<')[1].split('>')[0].split(',')
     return {
       'T': templates[0].strip(),
       'N': templates[1].strip()
     }
 
-def get_std_vector_params(arg):
-    return {'T': arg['type'].split('<')[1].split('>')[0].strip()}
+def get_std_vector_params(_type):
+    return {'T': _type.split('<')[1].split('>')[0].strip()}
 
 cpp_to_np_types = {
   'bool': 'bool',
@@ -306,11 +306,14 @@ class KoheronClient:
         if not is_std_array(ret_type):
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
-    def check_ret_vector(self):
+    def check_ret_vector(self, dtype):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_vector(ret_type):
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+        vect_type = get_std_vector_params(ret_type)['T']
+        if dtype != cpp_to_np_types[vect_type]:
+            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
 
     # TODO add types check
     def check_ret_tuple(self):
@@ -387,7 +390,7 @@ class KoheronClient:
     def recv_vector(self, dtype='uint32', check_type=True):
         '''Receive a numpy array with unknown length.'''
         if check_type:
-            self.check_ret_vector()
+            self.check_ret_vector(dtype)
         dtype = np.dtype(dtype)
         reserved, length = self.recv_tuple('IQ', check_type=False)
         assert reserved == 0
