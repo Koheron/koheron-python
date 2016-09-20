@@ -164,9 +164,9 @@ def build_payload(cmd_args, args):
                 size += append(payload, 1, 1)
             else:
                 size += append(payload, 0, 1)
-        elif arg['type'].split('<')[0].strip() == 'std::array':
+        elif is_std_array(arg['type']):
             size += append_array(payload, args[i], get_std_array_params(arg))
-        elif arg['type'].split('<')[0].strip() == 'std::vector':
+        elif is_std_vector(arg['type']):
             size += append(payload, len(args[i]), 8)
             append_array(payload, args[i], get_std_vector_params(arg))
             payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
@@ -175,6 +175,15 @@ def build_payload(cmd_args, args):
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
     return payload, size
+
+def is_std_array(_type):
+    return _type.split('<')[0].strip() == 'std::array'
+
+def is_std_vector(_type):
+    return _type.split('<')[0].strip() == 'std::vector'
+
+def is_std_tuple(_type):
+    return _type.split('<')[0].strip() == 'std::tuple'
 
 def get_std_array_params(arg):
     templates = arg['type'].split('<')[1].split('>')[0].split(',')
@@ -290,6 +299,26 @@ class KoheronClient:
         if ret_type not in expected_types:
             raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
+    # TODO add length check
+    def check_ret_array(self):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_array(ret_type):
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+
+    def check_ret_vector(self):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_vector(ret_type):
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+
+    # TODO add types check
+    def check_ret_tuple(self):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_tuple(ret_type):
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+
     # -------------------------------------------------------
     # Send/Receive
     # -------------------------------------------------------
@@ -345,29 +374,35 @@ class KoheronClient:
         return val == 1
 
     def recv_string(self):
-        reserved, length = self.recv_tuple('II')
+        reserved, length = self.recv_tuple('II', check_type=False)
         return self.recv_all(length)[:-1].decode('utf8')
 
     def recv_json(self):
         return json.loads(self.recv_string())
 
-    def recv_vector(self, dtype='uint32'):
+    def recv_vector(self, dtype='uint32', check_type=True):
         '''Receive a numpy array with unknown length.'''
+        if check_type:
+            self.check_ret_vector()
         dtype = np.dtype(dtype)
-        reserved, length = self.recv_tuple('IQ')
+        reserved, length = self.recv_tuple('IQ', check_type=False)
         assert reserved == 0
         buff = self.recv_all(length)
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
 
-    def recv_array(self, shape, dtype='uint32'):
+    def recv_array(self, shape, dtype='uint32', check_type=True):
         '''Receive a numpy array with known shape.'''
+        if check_type:
+            self.check_ret_array()
         dtype = np.dtype(dtype)
         buff = self.recv_all(dtype.itemsize * int(np.prod(shape)))
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
 
-    def recv_tuple(self, fmt):
+    def recv_tuple(self, fmt, check_type=True):
+        if check_type:
+            self.check_ret_tuple()
         fmt = '>' + fmt
-        buff = self.recv_array(struct.calcsize(fmt), dtype='uint8')
+        buff = self.recv_array(struct.calcsize(fmt), dtype='uint8', check_type=False)
         return tuple(struct.unpack(fmt, buff))
 
     def __del__(self):
