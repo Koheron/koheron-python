@@ -19,8 +19,6 @@ KOHERON_SERVER_BRANCH=protocol
 KOHERON_SERVER_MK=build_run.mk
 DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/$(KOHERON_SERVER_BRANCH)/scripts/build_run.mk > $(KOHERON_SERVER_MK))
 include $(KOHERON_SERVER_MK)
-SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/tests.py
-EXCEPTION_SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/exception_tests.py
 
 # -------------------------------------------------------------------------------------
 # Tests
@@ -32,18 +30,13 @@ $(PY2_VENV): requirements.txt
 $(PY3_VENV): requirements.txt
 	test -d $(PY3_VENV) || (virtualenv -p python3 $(PY3_VENV) && $(PY3_VENV)/bin/pip3 install -r requirements.txt)
 
-# $(subst ./,$(KOHERON_SERVER_DIR)/tests/,$(TESTS_PY)): $(KOHERON_SERVER_DIR)
-
-# ./%: $(KOHERON_SERVER_DIR)/tests/%
-# 	cp $< $@
-
 test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v $(TESTS_PY)
 
 test_common:
-	python -m pytest -v test_common.py
-	python3 -m pytest -v test_common.py
+	python -m pytest -v koheron/test/test_common.py
+	python3 -m pytest -v koheron/test/test_common.py
 	cat server.log
 
 # -------------------------------------------------------------------------------------

@@ -1,9 +1,11 @@
 # import context
 import os
+import sys
 import socket
 import struct
 import numpy as np
 
+sys.path = [".."] + sys.path
 from koheron import KoheronClient, run_instrument, Common
 
 host = os.getenv('HOST','192.168.1.100')
