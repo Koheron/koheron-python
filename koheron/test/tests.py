@@ -72,6 +72,10 @@ class Tests:
         return self.client.recv_vector(dtype='float32')
 
     @command()
+    def send_std_vector2(self):
+        return self.client.recv_vector(dtype='uint32')
+
+    @command()
     def rcv_std_array(self, u, f, arr, d, i):
         return self.client.recv_bool()
 
@@ -150,8 +154,6 @@ tests = Tests(client)
 client_unix = KoheronClient(unixsock=unixsock)
 tests_unix = Tests(client_unix)
 
-tests.send_std_vector()
-
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_many_params(tests):
     assert tests.rcv_many_params(429496729, 2048, 3.14, True)
@@ -203,8 +205,16 @@ def test_set_i64(tests):
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_std_vector(tests):
     array = tests.send_std_vector()
+    assert len(array) == 10
     for i in range(len(array)):
         assert array[i] == i*i*i
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_send_std_vector2(tests):
+    array = tests.send_std_vector2()
+    assert len(array) == 20
+    for i in range(len(array)):
+        assert array[i] == i*i
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_std_array(tests):
