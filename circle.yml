@@ -10,9 +10,11 @@ dependencies:
     - pip install twine
     - make venv/py2 venv/py3
     # https://discuss.circleci.com/t/caching-apt-get-install-results/563
-    - sudo apt-get install --reinstall ca-certificates
+    - sudo apt-get update -y; true
+    - sudo apt-get install apt -y
     - sudo -E add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    - sudo apt-get update; sudo apt-get install gcc-5 g++-5
+    - sudo apt-get update -y; true
+    - sudo apt-get install -y gcc-5 g++-5
     - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
