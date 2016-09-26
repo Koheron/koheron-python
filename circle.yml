@@ -1,13 +1,10 @@
 machine:
   post:
     - pyenv global 2.7.11 3.5.1
-  environment:
-    KOHERON_SERVER_BRANCH: master
 
 dependencies:
   cache_directories:
     - "venv"
-    - "koheron_server_venv"
   pre:
     - pip install twine
     - make venv/py2 venv/py3
