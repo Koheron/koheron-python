@@ -1,6 +1,8 @@
 machine:
   post:
     - pyenv global 2.7.11 3.5.1
+  environment:
+    KOHERON_SERVER_BRANCH: master
 
 dependencies:
   cache_directories:
@@ -20,7 +22,7 @@ dependencies:
 
 test:
   pre:
-    - if [ -z "$KOHERON_SERVER_BRANCH" ]; then export KOHERON_SERVER_BRANCH=master; fi
+    # - if [ -z "$KOHERON_SERVER_BRANCH" ]; then export KOHERON_SERVER_BRANCH=master; fi
     - printenv
     - make KOHERON_SERVER_BRANCH=$KOHERON_SERVER_BRANCH ./tmp/koheron-server/tmp/kserverd
     - ./tmp/koheron-server/tmp/kserverd -c ./tmp/koheron-server/config/kserver_local.conf:

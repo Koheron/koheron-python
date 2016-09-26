@@ -65,4 +65,4 @@ clean_venv:
 
 clean: clean_dist
 	rm -rf $(TMP)
-	rm -f $(TESTS_PY) $(KOHERON_SERVER_MK)
+	rm -f $(KOHERON_SERVER_MK)
