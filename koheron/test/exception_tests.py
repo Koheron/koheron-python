@@ -17,6 +17,10 @@ class ExceptionTests:
     def ret_type_exception(self):
         return self.client.recv_uint32() # Instead of bool
 
+    @command(funcname='ret_type_exception')
+    def ret_type_exception_tuple(self):
+        return self.client.recv_tuple('II') # Instead of bool
+
     @command()
     def std_vector_exception(self):
         return self.client.recv_vector(dtype='float32') # Instead of uint32
@@ -52,6 +56,14 @@ def test_ret_type_exception(port):
     with pytest.raises(TypeError) as excinfo:
         tests.ret_type_exception()
     assert str(excinfo.value) == 'ExceptionTests::ret_type_exception returns a bool.'
+
+@pytest.mark.parametrize('port', [port])
+def test_ret_type_exception_tuple(port):
+    client = KoheronClient('127.0.0.1', port)
+    tests = ExceptionTests(client)
+    with pytest.raises(TypeError) as excinfo:
+        tests.ret_type_exception_tuple()
+    assert str(excinfo.value) == 'ExceptionTests::ret_type_exception returns a bool not a std::tuple.'
 
 @pytest.mark.parametrize('port', [port])
 def test_std_vector_exception(port):

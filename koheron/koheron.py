@@ -323,7 +323,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_tuple(ret_type):
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('{}::{} returns a {} not a std::tuple.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
     # -------------------------------------------------------
     # Send/Receive
