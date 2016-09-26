@@ -267,7 +267,7 @@ class KoheronClient:
             raise ConnectionError('Failed to send initialization command')
 
         self.commands = self.recv_json(check_type=False)
-        pprint.pprint(self.commands)
+        # pprint.pprint(self.commands)
         self.devices_idx = {}
         self.cmds_idx_list = [None]*(2 + len(self.commands))
         self.cmds_args_list = [None]*(2 + len(self.commands))

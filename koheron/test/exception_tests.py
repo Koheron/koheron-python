@@ -29,6 +29,10 @@ class ExceptionTests:
     def std_array_size_exception(self):
         return self.client.recv_array(shape=20, dtype='float32') # Instead of 10
 
+    @command()
+    def std_tuple_exception(self):
+        return self.client.recv_uint32() # Instead of tuple
+
 port = int(os.getenv('PYTEST_PORT', '36000'))
 
 def test_tcp_connect_fail_exception():
@@ -72,3 +76,11 @@ def test_std_array_size_exception(port):
     with pytest.raises(ValueError) as excinfo:
         tests.std_array_size_exception()
     assert str(excinfo.value) == 'ExceptionTests::std_array_size_exception expects 10 elements.'
+
+@pytest.mark.parametrize('port', [port])
+def test_std_tuple_exception(port):
+    client = KoheronClient('127.0.0.1', port)
+    tests = ExceptionTests(client)
+    with pytest.raises(TypeError) as excinfo:
+        tests.std_tuple_exception()
+    assert str(excinfo.value) == 'ExceptionTests::std_tuple_exception returns a std::tuple<unsigned int, float>.'
