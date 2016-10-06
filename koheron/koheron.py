@@ -349,10 +349,15 @@ class KoheronClient:
                 raise ConnectionError('recv_all: Socket connection broken')
         return b''.join(data)
 
+    def recv_payload(self):
+        reserved, length = struct.unpack('>IQ', self.recv_all(struct.calcsize('>IQ')))
+        assert reserved == 0
+        return self.recv_all(length)
+
     def recv(self, fmt="I"):
-        buff_size = struct.calcsize(fmt)
-        data_recv = self.sock.recv(buff_size)
-        return struct.unpack(fmt, data_recv)[0]
+        buff = self.recv_payload()
+        assert len(buff) == struct.calcsize(fmt)
+        return struct.unpack(fmt, buff)[0]
 
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
@@ -382,7 +387,7 @@ class KoheronClient:
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])
-        reserved, length = self.recv_tuple('II', check_type=False)
+        reserved, length = struct.unpack('>II', self.recv_all(struct.calcsize('>II')))
         return self.recv_all(length)[:-1].decode('utf8')
 
     def recv_json(self, check_type=True):
@@ -395,9 +400,7 @@ class KoheronClient:
         if check_type:
             self.check_ret_vector(dtype)
         dtype = np.dtype(dtype)
-        reserved, length = self.recv_tuple('IQ', check_type=False)
-        assert reserved == 0
-        buff = self.recv_all(length)
+        buff = self.recv_payload()
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
 
     def recv_array(self, shape, dtype='uint32', check_type=True):
@@ -411,14 +414,16 @@ class KoheronClient:
                 arr_len = shape
             self.check_ret_array(dtype, arr_len)
         dtype = np.dtype(dtype)
-        buff = self.recv_all(dtype.itemsize * int(np.prod(shape)))
+        buff = self.recv_payload()
+        assert len(buff) == dtype.itemsize * int(np.prod(shape))
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
 
     def recv_tuple(self, fmt, check_type=True):
         if check_type:
             self.check_ret_tuple()
         fmt = '>' + fmt
-        buff = self.recv_array(struct.calcsize(fmt), dtype='uint8', check_type=False)
+        buff = self.recv_payload()
+        assert len(buff) == struct.calcsize(fmt)
         return tuple(struct.unpack(fmt, buff))
 
     def __del__(self):
