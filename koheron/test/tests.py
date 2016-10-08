@@ -3,13 +3,26 @@ import os
 import pytest
 import struct
 import numpy as np
+import re
 
 sys.path = [".."] + sys.path
 from koheron import KoheronClient, command
 
+# http://stackoverflow.com/questions/32234169/sha1-string-regex-for-python
+def is_valid_sha1(sha):
+    try:
+        sha_int = int(sha, 16)
+    except ValueError:
+        return False
+    return True
+
 class Tests:
     def __init__(self, client):
         self.client = client
+
+    @command(classname='KServer', funcname='get_version')
+    def get_server_version(self):
+        return self.client.recv_string()
 
     @command()
     def rcv_many_params(self, u1, u2, f, b):
@@ -153,6 +166,12 @@ tests = Tests(client)
 
 client_unix = KoheronClient(unixsock=unixsock)
 tests_unix = Tests(client_unix)
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_get_server_version(tests):
+    sha = tests.get_server_version()
+    assert len(sha) == 7
+    assert is_valid_sha1(sha)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_many_params(tests):
