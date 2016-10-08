@@ -189,7 +189,7 @@ def get_std_array_params(_type):
     templates = _type.split('<')[1].split('>')[0].split(',')
     return {
       'T': templates[0].strip(),
-      'N': templates[1].split('ul')[0].strip()
+      'N': templates[1].split('u')[0].strip()
     }
 
 def get_std_vector_params(_type):
