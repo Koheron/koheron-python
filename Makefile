@@ -15,7 +15,7 @@ CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; prin
 # -------------------------------------------------------------------------------------
 
 KOHERON_SERVER_DEST=$(TMP)
-KOHERON_SERVER_BRANCH = protocol
+KOHERON_SERVER_BRANCH = master
 
 KOHERON_SERVER_MK=build_run.mk
 DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/$(KOHERON_SERVER_BRANCH)/scripts/build_run.mk > $(KOHERON_SERVER_MK))
