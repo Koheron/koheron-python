@@ -2,5 +2,6 @@
 
 koheron.egg-info/
 venv/
+tmp/
 .cache/
 build_run.mk

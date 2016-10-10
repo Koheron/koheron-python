@@ -9,6 +9,8 @@ import json
 import requests
 import time
 
+import pprint
+
 ConnectionError = requests.ConnectionError
 
 # --------------------------------------------
@@ -85,8 +87,10 @@ def command(classname=None, funcname=None):
         def wrapper(self, *args):
             device_name = classname or self.__class__.__name__
             cmd_name = funcname or func.__name__
-            device_id, cmd_id, cmd_fmt = self.client.get_ids(device_name, cmd_name)
-            self.client.send_command(device_id, cmd_id, cmd_fmt, *args)
+            device_id, cmd_id, cmd_args = self.client.get_ids(device_name, cmd_name)
+            self.client.send_command(device_id, cmd_id, cmd_args, *args)
+            self.client.last_device_called = device_name
+            self.client.last_cmd_called = cmd_name
             return func(self, *args)
         return wrapper
     return real_command
@@ -118,7 +122,15 @@ def append(buff, value, size):
         append(buff, value >> 32, 4)
     return size
 
-def append_array(buff, array):
+def append_array(buff, array, array_params):
+    if 'N' in array_params and int(array_params['N']) != len(array):
+        raise ValueError('Invalid array length. Expected {} but received {}.'
+                         .format(array_params['N'], len(array)))
+
+    if cpp_to_np_types[array_params['T']] != array.dtype:
+        raise TypeError('Invalid array type. Expected {} but received {}.'
+                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+
     arr_bytes = bytearray(array)
     buff += arr_bytes
     return len(arr_bytes)
@@ -130,39 +142,69 @@ def float_to_bits(f):
 def double_to_bits(d):
     return struct.unpack('>q', struct.pack('>d', d))[0]
 
-def build_payload(fmt, args):
+def build_payload(cmd_args, args):
     size = 0
     payload = bytearray()
-    assert len(fmt) == len(args)
-    for i, type_ in enumerate(fmt):
-        if type_ in ['B','b']:
+    assert len(cmd_args) == len(args)
+    for i, arg in enumerate(cmd_args):
+        if arg['type'] in ['uint8_t','int8_t']:
             size += append(payload, args[i], 1)
-        elif type_ in ['H','h']:
+        elif arg['type'] in ['uint16_t','int16_t']:
             size += append(payload, args[i], 2)
-        elif type_ in ['I','i']:
+        elif arg['type'] in ['uint32_t','int32_t']:
             size += append(payload, args[i], 4)
-        elif type_ in ['Q','q']:
+        elif arg['type'] in ['uint64_t','int64_t']:
             size += append(payload, args[i], 8)
-        elif type_ is 'f':
+        elif arg['type'] == 'float':
             size += append(payload, float_to_bits(args[i]), 4)
-        elif type_ is 'd':
+        elif arg['type'] == 'double':
             size += append(payload, double_to_bits(args[i]), 8)
-        elif type_ is '?': # bool
+        elif arg['type'] == 'bool':
             if args[i]:
                 size += append(payload, 1, 1)
             else:
                 size += append(payload, 0, 1)
-        elif type_ is 'A':
-            size += append_array(payload, args[i])
-        elif type_ is 'V':
+        elif is_std_array(arg['type']):
+            size += append_array(payload, args[i], get_std_array_params(arg['type']))
+        elif is_std_vector(arg['type']):
             size += append(payload, len(args[i]), 8)
-            append_array(payload, args[i])
-            payload.extend(build_payload(fmt[i+1:], args[i+1:])[0])
+            append_array(payload, args[i], get_std_vector_params(arg['type']))
+            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
         else:
-            raise ValueError('Unsupported type "' + type_ + '"')
+            raise ValueError('Unsupported type "' + arg['type'] + '"')
 
     return payload, size
+
+def is_std_array(_type):
+    return _type.split('<')[0].strip() == 'std::array'
+
+def is_std_vector(_type):
+    return _type.split('<')[0].strip() == 'std::vector'
+
+def is_std_tuple(_type):
+    return _type.split('<')[0].strip() == 'std::tuple'
+
+def get_std_array_params(_type):
+    templates = _type.split('<')[1].split('>')[0].split(',')
+    return {
+      'T': templates[0].strip(),
+      'N': templates[1].split('u')[0].strip()
+    }
+
+def get_std_vector_params(_type):
+    return {'T': _type.split('<')[1].split('>')[0].strip()}
+
+cpp_to_np_types = {
+  'bool': 'bool',
+  'uint8_t': 'uint8', 'int8_t': 'int8',
+  'uint16_t': 'uint16', 'int16_t': 'int16',
+  'uint32_t': 'uint32', 'unsigned int': 'uint32',
+  'int32_t': 'int32', 'int': 'int32',
+  'uint64_t': 'uint64', 'int64_t': 'int64',
+  'float': 'float32',
+  'double': 'float64'
+}
 
 # --------------------------------------------
 # KoheronClient
@@ -203,17 +245,15 @@ class KoheronClient:
                 # Connect to Kserver
                 self.sock.connect((host, port))
                 self.is_connected = True
-            except socket.error as e:
-                print('Failed to connect to {:s}:{:d} : {:s}'.format(host, port, e))
-                self.is_connected = False
+            except BaseException as e:
+                raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
         elif unixsock != "":
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
                 self.is_connected = True
-            except socket.error as e:
-                print('Failed to connect to unix socket address ' + unixsock)
-                self.is_connected = False
+            except BaseException as e:
+                raise ConnectionError('Failed to connect to unix socket address ' + unixsock)
         else:
             raise ValueError('Unknown socket type')
 
@@ -226,60 +266,73 @@ class KoheronClient:
         except:
             raise ConnectionError('Failed to send initialization command')
 
-        self.commands = self.recv_json()
-
+        self.commands = self.recv_json(check_type=False)
+        # pprint.pprint(self.commands)
         self.devices_idx = {}
-        self.cmds_idx_list = []
-        self.cmds_fmt_list = []
+        self.cmds_idx_list = [None]*(2 + len(self.commands))
+        self.cmds_args_list = [None]*(2 + len(self.commands))
+        self.cmds_ret_types_list = [None]*(2 + len(self.commands))
 
-        for dev_idx, device in enumerate(self.commands):
-            self.devices_idx[device['name']] = dev_idx
+        for device in self.commands:
+            self.devices_idx[device['class']] = device['id']
             cmds_idx = {}
-            cmds_fmt = {}
-            for cmd_idx, cmd in enumerate(device['operations']):
-                cmds_idx[cmd['name']] = cmd_idx
-                cmds_fmt[cmd['name']] = cmd['fmt']
-            self.cmds_idx_list.append(cmds_idx)
-            self.cmds_fmt_list.append(cmds_fmt)
+            cmds_args = {}
+            cmds_ret_type = {}
+            for cmd in device['functions']:
+                cmds_idx[cmd['name']] = cmd['id']
+                cmds_args[cmd['name']] = cmd['args']
+                cmds_ret_type[cmd['name']] = cmd.get('ret_type', None)
+            self.cmds_idx_list[device['id']] = cmds_idx
+            self.cmds_args_list[device['id']] = cmds_args
+            self.cmds_ret_types_list[device['id']] = cmds_ret_type
 
     def get_ids(self, device_name, command_name):
         device_id = self.devices_idx[device_name]
         cmd_id = self.cmds_idx_list[device_id][command_name]
-        cmd_fmt = str(self.cmds_fmt_list[device_id][command_name])
-        return device_id, cmd_id, cmd_fmt
+        cmd_args = self.cmds_args_list[device_id][command_name]
+        return device_id, cmd_id, cmd_args
+
+    def check_ret_type(self, expected_types):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if ret_type not in expected_types:
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+
+    def check_ret_array(self, dtype, arr_len):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_array(ret_type):
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+        params = get_std_array_params(ret_type)
+        if dtype != cpp_to_np_types[params['T']]:
+            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
+        if arr_len != int(params['N']):
+            raise ValueError('{}::{} expects {} elements.'.format(self.last_device_called, self.last_cmd_called, params['N']))
+
+    def check_ret_vector(self, dtype):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_vector(ret_type):
+            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+        vect_type = get_std_vector_params(ret_type)['T']
+        if dtype != cpp_to_np_types[vect_type]:
+            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
+
+    # TODO add types check
+    def check_ret_tuple(self):
+        device_id = self.devices_idx[self.last_device_called]
+        ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
+        if not is_std_tuple(ret_type):
+            raise TypeError('{}::{} returns a {} not a std::tuple.'.format(self.last_device_called, self.last_cmd_called, ret_type))
 
     # -------------------------------------------------------
     # Send/Receive
     # -------------------------------------------------------
 
-    def send_command(self, device_id, cmd_id, type_str='', *args):
-        cmd = make_command(device_id, cmd_id, type_str, *args)
+    def send_command(self, device_id, cmd_id, cmd_args=[], *args):
+        cmd = make_command(device_id, cmd_id, cmd_args, *args)
         if self.sock.send(cmd) == 0:
             raise ConnectionError('send_command: Socket connection broken')
-
-    def recv(self, fmt="I"):
-        buff_size = struct.calcsize(fmt)
-        data_recv = self.sock.recv(buff_size)
-        return struct.unpack(fmt, data_recv)[0]
-
-    def recv_uint32(self):
-        return self.recv()
-
-    def recv_uint64(self):
-        return self.recv(fmt='Q')
-
-    def recv_int32(self):
-        return self.recv(fmt='i')
-
-    def recv_float(self):
-        return self.recv(fmt='f')
-
-    def recv_double(self):
-        return self.recv(fmt='d')
-
-    def recv_bool(self):
-        val = self.recv()
-        return val == 1
 
     def recv_all(self, n_bytes):
         '''Receive exactly n_bytes bytes.'''
@@ -296,30 +349,80 @@ class KoheronClient:
                 raise ConnectionError('recv_all: Socket connection broken')
         return b''.join(data)
 
-    def recv_string(self):
-        reserved, length = self.recv_tuple('II')
-        return self.recv_all(length)[:-1].decode('utf8')
-
-    def recv_json(self):
-        return json.loads(self.recv_string())
-
-    def recv_vector(self, dtype='uint32'):
-        '''Receive a numpy array with unknown length.'''
-        dtype = np.dtype(dtype)
-        reserved, length = self.recv_tuple('IQ')
+    def recv_payload(self):
+        reserved, length = struct.unpack('>IQ', self.recv_all(struct.calcsize('>IQ')))
         assert reserved == 0
-        buff = self.recv_all(length)
+        return self.recv_all(length)
+
+    def recv(self, fmt="I"):
+        buff = self.recv_payload()
+        assert len(buff) == struct.calcsize(fmt)
+        return struct.unpack(fmt, buff)[0]
+
+    def recv_uint32(self):
+        self.check_ret_type(['uint32_t', 'unsigned int'])
+        return self.recv()
+
+    def recv_uint64(self):
+        self.check_ret_type(['uint64_t', 'unsigned long'])
+        return self.recv(fmt='Q')
+
+    def recv_int32(self):
+        self.check_ret_type(['int32_t', 'int'])
+        return self.recv(fmt='i')
+
+    def recv_float(self):
+        self.check_ret_type(['float'])
+        return self.recv(fmt='f')
+
+    def recv_double(self):
+        self.check_ret_type(['double'])
+        return self.recv(fmt='d')
+
+    def recv_bool(self):
+        self.check_ret_type(['bool'])
+        val = self.recv()
+        return val == 1
+
+    def recv_string(self, check_type=True):
+        if check_type:
+            self.check_ret_type(['std::string', 'const char *', 'const char*'])
+        return self.recv_payload()[:-1].decode('utf8')
+
+    def recv_json(self, check_type=True):
+        if check_type:
+            self.check_ret_type(['std::string', 'const char *', 'const char*'])
+        return json.loads(self.recv_string(check_type=False))
+
+    def recv_vector(self, dtype='uint32', check_type=True):
+        '''Receive a numpy array with unknown length.'''
+        if check_type:
+            self.check_ret_vector(dtype)
+        dtype = np.dtype(dtype)
+        buff = self.recv_payload()
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
 
-    def recv_array(self, shape, dtype='uint32'):
+    def recv_array(self, shape, dtype='uint32', check_type=True):
         '''Receive a numpy array with known shape.'''
+        if check_type:
+            if isinstance(shape, tuple):
+                arr_len = 1
+                for val in shape:
+                    arr_len *= val
+            else:
+                arr_len = shape
+            self.check_ret_array(dtype, arr_len)
         dtype = np.dtype(dtype)
-        buff = self.recv_all(dtype.itemsize * int(np.prod(shape)))
+        buff = self.recv_payload()
+        assert len(buff) == dtype.itemsize * int(np.prod(shape))
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
 
-    def recv_tuple(self, fmt):
+    def recv_tuple(self, fmt, check_type=True):
+        if check_type:
+            self.check_ret_tuple()
         fmt = '>' + fmt
-        buff = self.recv_array(struct.calcsize(fmt), dtype='uint8')
+        buff = self.recv_payload()
+        assert len(buff) == struct.calcsize(fmt)
         return tuple(struct.unpack(fmt, buff))
 
     def __del__(self):

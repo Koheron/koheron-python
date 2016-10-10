@@ -3,7 +3,7 @@ TMP = tmp
 TEST_VENV = venv
 PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
-TESTS_PY = ./tests.py
+TESTS_PY = koheron/test/tests.py koheron/test/exception_tests.py
 
 PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
 CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; print(__version__)")
@@ -15,33 +15,29 @@ CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; prin
 # -------------------------------------------------------------------------------------
 
 KOHERON_SERVER_DEST=$(TMP)
+KOHERON_SERVER_BRANCH = protocol
+
 KOHERON_SERVER_MK=build_run.mk
-DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/master/scripts/build_run.mk > $(KOHERON_SERVER_MK))
+DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/$(KOHERON_SERVER_BRANCH)/scripts/build_run.mk > $(KOHERON_SERVER_MK))
 include $(KOHERON_SERVER_MK)
-SERVER_PYTEST = $(KOHERON_SERVER_DIR)/tests/tests.py
 
 # -------------------------------------------------------------------------------------
 # Tests
 # -------------------------------------------------------------------------------------
 
 $(PY2_VENV): requirements.txt
-	virtualenv $(PY2_VENV)
-	$(PY2_VENV)/bin/pip install -r requirements.txt
+	test -d $(PY2_VENV) || (virtualenv $(PY2_VENV) && $(PY2_VENV)/bin/pip install -r requirements.txt)
 
 $(PY3_VENV): requirements.txt
-	virtualenv -p python3 $(PY3_VENV)
-	$(PY3_VENV)/bin/pip3 install -r requirements.txt
-
-$(TESTS_PY): $(SERVER_DIR)
-	cp $(SERVER_PYTEST) $(TESTS_PY)
+	test -d $(PY3_VENV) || (virtualenv -p python3 $(PY3_VENV) && $(PY3_VENV)/bin/pip3 install -r requirements.txt)
 
 test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v $(TESTS_PY)
 
 test_common:
-	python -m pytest -v test_common.py
-	python3 -m pytest -v test_common.py
+	python -m pytest -v koheron/test/test_common.py
+	python3 -m pytest -v koheron/test/test_common.py
 	cat server.log
 
 # -------------------------------------------------------------------------------------
@@ -70,4 +66,4 @@ clean_venv:
 
 clean: clean_dist
 	rm -rf $(TMP)
-	rm -f $(TESTS_PY) $(KOHERON_SERVER_MK)
+	rm -f $(KOHERON_SERVER_MK)
