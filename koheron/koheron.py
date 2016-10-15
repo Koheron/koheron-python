@@ -135,9 +135,6 @@ def append_array(buff, array, array_params):
     buff += arr_bytes
     return len(arr_bytes)
 
-def append_string(buff, str):
-    buff.extend(str.encode())
-
 # http://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
 def float_to_bits(f):
     return struct.unpack('>l', struct.pack('>f', f))[0]
@@ -176,7 +173,7 @@ def build_payload(cmd_args, args):
             break
         elif is_std_string(arg['type']):
             size += append(payload, len(args[i]), 8)
-            append_string(payload, args[i])
+            payload.extend(args[i].encode())
             payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
         else:
