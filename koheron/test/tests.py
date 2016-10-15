@@ -129,6 +129,10 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def rcv_std_string(self, str):
+        return self.client.recv_bool()
+
+    @command()
     def get_cstr(self):
         return self.client.recv_string()
 
@@ -317,6 +321,10 @@ def test_rcv_std_vector4(tests):
     arr = np.arange(8192, dtype='uint32') ** 2
     vec = np.cos(np.arange(8192, dtype='float32'))
     assert tests.rcv_std_vector4(vec, 2.654798454646, -56789, arr)
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_rcv_string(tests):
+    assert tests.rcv_std_string('Hello World')
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_cstring(tests):
