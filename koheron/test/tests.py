@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import sys
 import os
 import pytest
@@ -142,6 +145,10 @@ class Tests:
 
     @command()
     def rcv_std_string2(self, str, vec, d, i):
+        return self.client.recv_bool()
+
+    @command()
+    def rcv_std_string3(self, vec, d, i, str, arr):
         return self.client.recv_bool()
 
     @command()
@@ -352,6 +359,13 @@ def test_rcv_string1(tests):
 def test_rcv_string2(tests):
     vec = np.sin(np.arange(8192, dtype='float32'))
     assert tests.rcv_std_string2('At vero eos et accusamus et iusto odio dignissimos ducimus, qui blanditiis praesentium voluptatum deleniti atque corrupti', vec, 0.80773675317454, -361148845)
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_rcv_string3(tests):
+    vec = np.sqrt(np.arange(8192, dtype='float32'))
+    arr = np.arange(8192, dtype='uint32') ** 2
+    assert tests.rcv_std_string3(vec, 0.4741953746153866, -6093602, "Erbium is a rare-earth element that, when excited, emits light around 1.54 micrometers - the low-loss wavelength for optical fibers used in DWDM. A weak signal enters the erbium-doped fiber, into which light at 980nm or 1480nm is injected using a pump laser. This injected light stimulates the erbium atoms to release their stored energy as additional 1550nm light. As this process continues down the fiber, the signal grows stronger. The spontaneous emissions in the EDFA also add noise to the signal; this determines the noise figure of an EDFA.", arr)
+
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_cstring(tests):
