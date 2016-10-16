@@ -129,6 +129,10 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def rcv_std_vector5(self, vec1, d, i, vec2):
+        return self.client.recv_bool()
+
+    @command()
     def rcv_std_string(self, str):
         return self.client.recv_bool()
 
@@ -329,6 +333,12 @@ def test_rcv_std_vector4(tests):
     arr = np.arange(8192, dtype='uint32') ** 2
     vec = np.cos(np.arange(8192, dtype='float32'))
     assert tests.rcv_std_vector4(vec, 2.654798454646, -56789, arr)
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_rcv_std_vector5(tests):
+    vec1 = np.tanh(np.arange(8192, dtype='float32'))
+    vec2 = np.log2(np.arange(16384, dtype='float32') + 1)
+    assert tests.rcv_std_vector5(vec1, 0.4232747024077716, 35591508, vec2)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_rcv_string(tests):
