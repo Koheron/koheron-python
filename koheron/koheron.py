@@ -145,7 +145,11 @@ def double_to_bits(d):
 def build_payload(cmd_args, args):
     size = 0
     payload = bytearray()
-    assert len(cmd_args) == len(args)
+
+    if len(cmd_args) != len(args):
+        raise ValueError('Invalid number of arguments. Expected {} but received {}.'
+                         .format(len(cmd_args), len(args)))
+
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
             size += append(payload, args[i], 1)
@@ -171,6 +175,11 @@ def build_payload(cmd_args, args):
             append_array(payload, args[i], get_std_vector_params(arg['type']))
             payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
             break
+        elif is_std_string(arg['type']):
+            size += append(payload, len(args[i]), 8)
+            payload.extend(args[i].encode())
+            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
+            break
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
@@ -181,6 +190,9 @@ def is_std_array(_type):
 
 def is_std_vector(_type):
     return _type.split('<')[0].strip() == 'std::vector'
+
+def is_std_string(_type):
+    return _type.strip() == 'std::string'
 
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
