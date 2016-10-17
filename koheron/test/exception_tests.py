@@ -54,6 +54,14 @@ def test_unix_connect_fail_exception():
     assert str(excinfo.value) == 'Failed to connect to unix socket address dummy/path'
 
 @pytest.mark.parametrize('port', [port])
+def test_invalid_number_arguments_exception(port):
+    client = KoheronClient('127.0.0.1', port)
+    tests = ExceptionTests(client)
+    with pytest.raises(ValueError) as excinfo:
+        tests.ret_type_exception(42) # Musn't take a parameter
+    assert str(excinfo.value) == 'Invalid number of arguments. Expected 0 but received 1.'
+
+@pytest.mark.parametrize('port', [port])
 def test_ret_type_exception(port):
     client = KoheronClient('127.0.0.1', port)
     tests = ExceptionTests(client)

@@ -145,7 +145,11 @@ def double_to_bits(d):
 def build_payload(cmd_args, args):
     size = 0
     payload = bytearray()
-    assert len(cmd_args) == len(args)
+
+    if len(cmd_args) != len(args):
+        raise ValueError('Invalid number of arguments. Expected {} but received {}.'
+                         .format(len(cmd_args), len(args)))
+
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
             size += append(payload, args[i], 1)
