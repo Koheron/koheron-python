@@ -107,7 +107,7 @@ def make_command(*args):
     # Payload
     if len(args[2:]) > 0:
         payload, payload_size = build_payload(args[2], args[3:])
-        append(buff, payload_size, 4)
+        append(buff, payload_size, 8)
         buff.extend(payload)
     else:
         append(buff, 0, 4)
