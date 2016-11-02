@@ -106,11 +106,9 @@ def make_command(*args):
     append(buff, args[1], 2)  # op_id
     # Payload
     if len(args[2:]) > 0:
-        payload, payload_size = build_payload(args[2], args[3:])
-        append(buff, payload_size, 8)
-        buff.extend(payload)
+        buff += build_payload(args[2], args[3:])
     else:
-        append(buff, 0, 4)
+        append(buff, 0, 8)
     return buff
 
 def append(buff, value, size):
@@ -120,7 +118,6 @@ def append(buff, value, size):
     elif size == 8:
         append(buff, value, 4)
         append(buff, value >> 32, 4)
-    return size
 
 def append_array(buff, array, array_params):
     if 'N' in array_params and int(array_params['N']) != len(array):
@@ -132,8 +129,8 @@ def append_array(buff, array, array_params):
                         .format(cpp_to_np_types[array_params['T']], array.dtype))
 
     arr_bytes = bytearray(array)
+    append(buff, len(arr_bytes), 8)
     buff += arr_bytes
-    return len(arr_bytes)
 
 # http://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
 def float_to_bits(f):
@@ -142,9 +139,14 @@ def float_to_bits(f):
 def double_to_bits(d):
     return struct.unpack('>q', struct.pack('>d', d))[0]
 
+def dump_scalar_pack(buff, scalar_pack):
+    if len(scalar_pack) > 0:
+        append(buff, len(scalar_pack), 8)
+        buff += scalar_pack
+
 def build_payload(cmd_args, args):
-    size = 0
     payload = bytearray()
+    scalar_pack = bytearray()
 
     if len(cmd_args) != len(args):
         raise ValueError('Invalid number of arguments. Expected {} but received {}.'
@@ -152,38 +154,41 @@ def build_payload(cmd_args, args):
 
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
-            size += append(payload, args[i], 1)
+            append(scalar_pack, args[i], 1)
         elif arg['type'] in ['uint16_t','int16_t']:
-            size += append(payload, args[i], 2)
+            append(scalar_pack, args[i], 2)
         elif arg['type'] in ['uint32_t','int32_t']:
-            size += append(payload, args[i], 4)
+            append(scalar_pack, args[i], 4)
         elif arg['type'] in ['uint64_t','int64_t']:
-            size += append(payload, args[i], 8)
+            append(scalar_pack, args[i], 8)
         elif arg['type'] == 'float':
-            size += append(payload, float_to_bits(args[i]), 4)
+            append(scalar_pack, float_to_bits(args[i]), 4)
         elif arg['type'] == 'double':
-            size += append(payload, double_to_bits(args[i]), 8)
+            append(scalar_pack, double_to_bits(args[i]), 8)
         elif arg['type'] == 'bool':
             if args[i]:
-                size += append(payload, 1, 1)
+                append(scalar_pack, 1, 1)
             else:
-                size += append(payload, 0, 1)
+                append(scalar_pack, 0, 1)
         elif is_std_array(arg['type']):
-            size += append_array(payload, args[i], get_std_array_params(arg['type']))
+            dump_scalar_pack(payload, scalar_pack)
+            scalar_pack = bytearray()
+            append_array(payload, args[i], get_std_array_params(arg['type']))
         elif is_std_vector(arg['type']):
-            size += append(payload, len(args[i]), 8)
+            dump_scalar_pack(payload, scalar_pack)
+            scalar_pack = bytearray()
             append_array(payload, args[i], get_std_vector_params(arg['type']))
-            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
-            break
         elif is_std_string(arg['type']):
-            size += append(payload, len(args[i]), 8)
+            dump_scalar_pack(payload, scalar_pack)
+            scalar_pack = bytearray()
+            append(payload, len(args[i]), 8)
             payload.extend(args[i].encode())
-            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
-            break
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
-    return payload, size
+    dump_scalar_pack(payload, scalar_pack)
+
+    return payload
 
 def is_std_array(_type):
     return _type.split('<')[0].strip() == 'std::array'
