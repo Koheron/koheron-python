@@ -404,7 +404,7 @@ class KoheronClient:
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])
-        return self.recv_payload()[:-1].decode('utf8')
+        return self.recv_payload().decode('utf8')
 
     def recv_json(self, check_type=True):
         if check_type:
