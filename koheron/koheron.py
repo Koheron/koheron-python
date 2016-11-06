@@ -363,18 +363,19 @@ class KoheronClient:
                 n_rcv += len(chunk)
                 data.append(chunk)
             except:
-                raise ConnectionError('recv_all: Socket connection broken')
+                raise ConnectionError('recv_all: Socket connection broken.')
         return b''.join(data)
 
     def recv_payload(self):
-        reserved, length = struct.unpack('>IQ', self.recv_all(struct.calcsize('>IQ')))
+        reserved, class_id, func_id, length = struct.unpack('>IHHQ', self.recv_all(struct.calcsize('>IHHQ')))
         assert reserved == 0
         return self.recv_all(length)
 
     def recv(self, fmt="I"):
+        fmt_ = '>' + fmt
         buff = self.recv_payload()
-        assert len(buff) == struct.calcsize(fmt)
-        return struct.unpack(fmt, buff)[0]
+        assert len(buff) == struct.calcsize(fmt_)
+        return struct.unpack(fmt_, buff)[0]
 
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
@@ -398,8 +399,7 @@ class KoheronClient:
 
     def recv_bool(self):
         self.check_ret_type(['bool'])
-        val = self.recv()
-        return val == 1
+        return self.recv(fmt='?')
 
     def recv_string(self, check_type=True):
         if check_type:
