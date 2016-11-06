@@ -152,6 +152,10 @@ def build_payload(cmd_args, args):
         raise ValueError('Invalid number of arguments. Expected {} but received {}.'
                          .format(len(cmd_args), len(args)))
 
+    if len(cmd_args) == 0:
+        append(payload, 0, 8)
+        return payload
+
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
             append(scalar_pack, args[i], 1)
@@ -187,7 +191,6 @@ def build_payload(cmd_args, args):
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
     dump_scalar_pack(payload, scalar_pack)
-
     return payload
 
 def is_std_array(_type):
