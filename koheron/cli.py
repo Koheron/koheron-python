@@ -81,6 +81,15 @@ def upload(conn_type, instrument_zip, run):
 
 @cli.command()
 @click.pass_obj
+@click.argument('instrument_zip')
+@click.option('--run', is_flag=True)
+def update(conn_type, instrument_zip, run):
+    """Update instrument.zip"""
+    from .koheron import update_instrument
+    update_instrument(conn_type.host, instrument_zip, run=run)
+
+@cli.command()
+@click.pass_obj
 @click.argument('instrument_name', required=False)
 @click.argument('instrument_version', required=False)
 @click.option('--restart', is_flag=True)
