@@ -116,8 +116,8 @@ def append(buff, value, size):
         for i in reversed(range(size)):
             buff.append((value >> (8 * i)) & 0xff)
     elif size == 8:
-        append(buff, value, 4)
         append(buff, value >> 32, 4)
+        append(buff, value, 4)
 
 def append_array(buff, array, array_params):
     if 'N' in array_params and int(array_params['N']) != len(array):
