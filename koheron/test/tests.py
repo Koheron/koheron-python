@@ -200,9 +200,14 @@ tests_unix = Tests(client_unix)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_server_version(tests):
-    sha = tests.get_server_version()
-    assert len(sha) == 7
+    server_version = tests.get_server_version()
+    server_version_ = server_version.split('.')
+    sha = server_version[4]
+    assert len(sha) >= 7
     assert is_valid_sha1(sha)
+    client_version_ = __version__.split('.')
+    assert client_version_[0] >= server_version_[0]
+    assert client_version_[1] >= server_version_[1]
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_many_params(tests):
