@@ -202,7 +202,7 @@ tests_unix = Tests(client_unix)
 def test_get_server_version(tests):
     server_version = tests.get_server_version()
     server_version_ = server_version.split('.')
-    sha = server_version[4]
+    sha = server_version[3]
     assert len(sha) >= 7
     assert is_valid_sha1(sha)
     client_version_ = __version__.split('.')
