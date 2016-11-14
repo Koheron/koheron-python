@@ -38,6 +38,13 @@ def upload_instrument(host, filename, run=False):
         name, version = get_name_version(filename)
         r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
 
+def update_instrument(host, filename, run=False):
+    name, version = get_name_version(filename)
+    local_instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
+    for version in local_instruments[name]:
+        r = requests.get('http://{}/api/instruments/delete/{}/{}'.format(host, name, version))
+    upload_instrument(host, filename, run=run)
+
 def run_instrument(host, name=None, version=None, restart=False):
     instrument_running = False
     instrument_in_store = False
