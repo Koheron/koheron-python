@@ -9,7 +9,7 @@ import numpy as np
 import re
 
 sys.path = [".."] + sys.path
-from koheron import KoheronClient, command
+from koheron import KoheronClient, command, __version__
 
 # http://stackoverflow.com/questions/32234169/sha1-string-regex-for-python
 def is_valid_sha1(sha):
@@ -201,9 +201,8 @@ tests_unix = Tests(client_unix)
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_server_version(tests):
     server_version = tests.get_server_version()
-    print('Server version = %s' % server_version)
     server_version_ = server_version.split('.')
-    sha = server_version[3]
+    sha = server_version_[3]
     assert len(sha) >= 7
     assert is_valid_sha1(sha)
     client_version_ = __version__.split('.')
