@@ -290,7 +290,7 @@ class KoheronClient:
         server_version_ = server_version.split('.')
         client_version_ = __version__.split('.')
         if  (client_version_[0] != server_version_[0]) or (client_version_[1] < server_version_[1]):
-            print("Warning: your client version {} is incompatible with the server version {}".format(server_version, client_version))
+            print("Warning: your client version {} is incompatible with the server version {}".format(__version__, server_version))
             print("Upgrade your client with 'pip install --upgrade koheron'")
         
     def load_devices(self):
