@@ -9,7 +9,7 @@ import numpy as np
 import re
 
 sys.path = [".."] + sys.path
-from koheron import KoheronClient, command
+from koheron import KoheronClient, command, __version__
 
 # http://stackoverflow.com/questions/32234169/sha1-string-regex-for-python
 def is_valid_sha1(sha):
