@@ -335,7 +335,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_array(ret_type):
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to rcv_array [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         params = get_std_array_params(ret_type)
         if dtype != cpp_to_np_types[params['T']]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
@@ -346,7 +346,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_vector(ret_type):
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to rcv_vector [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         vect_type = get_std_vector_params(ret_type)['T']
         if dtype != cpp_to_np_types[vect_type]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
