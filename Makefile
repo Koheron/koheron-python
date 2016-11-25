@@ -3,7 +3,7 @@ TMP = tmp
 TEST_VENV = venv
 PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
-TESTS_PY = koheron/test/tests.py koheron/test/exception_tests.py
+TESTS_PY = koheron/test/tests.py koheron/test/exception_tests.py koheron/test/context_tests.py
 
 PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
 CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; print(__version__)")
