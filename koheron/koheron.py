@@ -125,7 +125,7 @@ def append_vector(buff, array, array_params):
                         .format(cpp_to_np_types[array_params['T']], array.dtype))
 
     arr_bytes = bytearray(array)
-    append(buff, len(arr_bytes), 8)
+    append(buff, len(arr_bytes), 4)
     buff += arr_bytes
 
 def append_array(buff, array, array_params):
@@ -179,7 +179,7 @@ def build_payload(cmd_args, args):
         elif is_std_vector(arg['type']):
             append_vector(payload, args[i], get_std_vector_params(arg['type']))
         elif is_std_string(arg['type']):
-            append(payload, len(args[i]), 8)
+            append(payload, len(args[i]), 4)
             payload.extend(args[i].encode())
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
