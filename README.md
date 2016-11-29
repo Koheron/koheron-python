@@ -5,6 +5,11 @@
 
 Koheron Python Library
 
+### Install from a specific tag
+
+```
+pip install https://github.com/Koheron/koheron-python/zipball/v0.11.0
+```
 ### Develop in a virtualenv
 
 ```bash
