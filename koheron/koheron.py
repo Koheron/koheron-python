@@ -9,7 +9,7 @@ import json
 import requests
 import time
 
-import pprint
+from .version import __version__
 
 ConnectionError = requests.ConnectionError
 
@@ -113,11 +113,9 @@ def make_command(*args):
     append(buff, args[1], 2)  # op_id
     # Payload
     if len(args[2:]) > 0:
-        payload, payload_size = build_payload(args[2], args[3:])
-        append(buff, payload_size, 4)
-        buff.extend(payload)
+        buff += build_payload(args[2], args[3:])
     else:
-        append(buff, 0, 4)
+        append(buff, 0, 8)
     return buff
 
 def append(buff, value, size):
@@ -125,12 +123,20 @@ def append(buff, value, size):
         for i in reversed(range(size)):
             buff.append((value >> (8 * i)) & 0xff)
     elif size == 8:
-        append(buff, value, 4)
         append(buff, value >> 32, 4)
-    return size
+        append(buff, value, 4)
+
+def append_vector(buff, array, array_params):
+    if cpp_to_np_types[array_params['T']] != array.dtype:
+        raise TypeError('Invalid array type. Expected {} but received {}.'
+                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+
+    arr_bytes = bytearray(array)
+    append(buff, len(arr_bytes), 4)
+    buff += arr_bytes
 
 def append_array(buff, array, array_params):
-    if 'N' in array_params and int(array_params['N']) != len(array):
+    if int(array_params['N']) != len(array):
         raise ValueError('Invalid array length. Expected {} but received {}.'
                          .format(array_params['N'], len(array)))
 
@@ -138,9 +144,7 @@ def append_array(buff, array, array_params):
         raise TypeError('Invalid array type. Expected {} but received {}.'
                         .format(cpp_to_np_types[array_params['T']], array.dtype))
 
-    arr_bytes = bytearray(array)
-    buff += arr_bytes
-    return len(arr_bytes)
+    buff += bytearray(array)
 
 # http://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
 def float_to_bits(f):
@@ -150,47 +154,44 @@ def double_to_bits(d):
     return struct.unpack('>q', struct.pack('>d', d))[0]
 
 def build_payload(cmd_args, args):
-    size = 0
     payload = bytearray()
 
     if len(cmd_args) != len(args):
         raise ValueError('Invalid number of arguments. Expected {} but received {}.'
                          .format(len(cmd_args), len(args)))
 
+    if len(cmd_args) == 0:
+        return payload
+
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
-            size += append(payload, args[i], 1)
+            append(payload, args[i], 1)
         elif arg['type'] in ['uint16_t','int16_t']:
-            size += append(payload, args[i], 2)
+            append(payload, args[i], 2)
         elif arg['type'] in ['uint32_t','int32_t']:
-            size += append(payload, args[i], 4)
+            append(payload, args[i], 4)
         elif arg['type'] in ['uint64_t','int64_t']:
-            size += append(payload, args[i], 8)
+            append(payload, args[i], 8)
         elif arg['type'] == 'float':
-            size += append(payload, float_to_bits(args[i]), 4)
+            append(payload, float_to_bits(args[i]), 4)
         elif arg['type'] == 'double':
-            size += append(payload, double_to_bits(args[i]), 8)
+            append(payload, double_to_bits(args[i]), 8)
         elif arg['type'] == 'bool':
             if args[i]:
-                size += append(payload, 1, 1)
+                append(payload, 1, 1)
             else:
-                size += append(payload, 0, 1)
+                append(payload, 0, 1)
         elif is_std_array(arg['type']):
-            size += append_array(payload, args[i], get_std_array_params(arg['type']))
+            append_array(payload, args[i], get_std_array_params(arg['type']))
         elif is_std_vector(arg['type']):
-            size += append(payload, len(args[i]), 8)
-            append_array(payload, args[i], get_std_vector_params(arg['type']))
-            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
-            break
+            append_vector(payload, args[i], get_std_vector_params(arg['type']))
         elif is_std_string(arg['type']):
-            size += append(payload, len(args[i]), 8)
+            append(payload, len(args[i]), 4)
             payload.extend(args[i].encode())
-            payload.extend(build_payload(cmd_args[i+1:], args[i+1:])[0])
-            break
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
-    return payload, size
+    return payload
 
 def is_std_array(_type):
     return _type.split('<')[0].strip() == 'std::array'
@@ -230,7 +231,7 @@ cpp_to_np_types = {
 # --------------------------------------------
 
 class KoheronClient:
-    def __init__(self, host="", port=36000, unixsock=""):
+    def __init__(self, host='', port=36000, unixsock=''):
         ''' Initialize connection with koheron-server
 
         Args:
@@ -248,7 +249,7 @@ class KoheronClient:
         self.unixsock = unixsock
         self.is_connected = False
 
-        if host != "":
+        if host != '':
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -266,7 +267,7 @@ class KoheronClient:
                 self.is_connected = True
             except BaseException as e:
                 raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
-        elif unixsock != "":
+        elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
@@ -277,8 +278,22 @@ class KoheronClient:
             raise ValueError('Unknown socket type')
 
         if self.is_connected:
+            self.check_version()
             self.load_devices()
 
+    def check_version(self):
+        try:
+            self.send_command(1, 0)
+        except:
+            raise ConnectionError('Failed to retrieve the server version')
+        server_version = self.recv_string(check_type=False)
+        server_version_ = server_version.split('.')
+        client_version_ = __version__.split('.')
+        if  (client_version_[0] != server_version_[0]) or (client_version_[1] < server_version_[1]):
+            print('Warning: your client version {} is incompatible with the server version {}'
+                   .format(__version__, server_version))
+            print('Upgrade your client with "pip install --upgrade koheron"')
+        
     def load_devices(self):
         try:
             self.send_command(1, 1)
@@ -321,7 +336,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_array(ret_type):
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to rcv_array [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         params = get_std_array_params(ret_type)
         if dtype != cpp_to_np_types[params['T']]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
@@ -332,7 +347,7 @@ class KoheronClient:
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_vector(ret_type):
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError('Expect call to rcv_vector [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
         vect_type = get_std_vector_params(ret_type)['T']
         if dtype != cpp_to_np_types[vect_type]:
             raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
@@ -365,18 +380,21 @@ class KoheronClient:
                 n_rcv += len(chunk)
                 data.append(chunk)
             except:
-                raise ConnectionError('recv_all: Socket connection broken')
+                raise ConnectionError('recv_all: Socket connection broken.')
         return b''.join(data)
 
-    def recv_payload(self):
-        reserved, length = struct.unpack('>IQ', self.recv_all(struct.calcsize('>IQ')))
+    def recv_dynamic_payload(self):
+        reserved, class_id, func_id, length = struct.unpack('>IHHI', self.recv_all(struct.calcsize('>IHHI')))
         assert reserved == 0
         return self.recv_all(length)
 
-    def recv(self, fmt="I"):
-        buff = self.recv_payload()
-        assert len(buff) == struct.calcsize(fmt)
-        return struct.unpack(fmt, buff)[0]
+    def recv(self, fmt='I'):
+        fmt_ = '>IHH' + fmt
+        t = struct.unpack(fmt_, self.recv_all(struct.calcsize(fmt_)))[3:]
+        if len(t) == 1:
+            return t[0]
+        else:
+            return t
 
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
@@ -400,13 +418,12 @@ class KoheronClient:
 
     def recv_bool(self):
         self.check_ret_type(['bool'])
-        val = self.recv()
-        return val == 1
+        return self.recv(fmt='?')
 
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])
-        return self.recv_payload()[:-1].decode('utf8')
+        return self.recv_dynamic_payload().decode('utf8')
 
     def recv_json(self, check_type=True):
         if check_type:
@@ -418,31 +435,23 @@ class KoheronClient:
         if check_type:
             self.check_ret_vector(dtype)
         dtype = np.dtype(dtype)
-        buff = self.recv_payload()
+        buff = self.recv_dynamic_payload()
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
 
     def recv_array(self, shape, dtype='uint32', check_type=True):
         '''Receive a numpy array with known shape.'''
+        arr_len = int(np.prod(shape))
         if check_type:
-            if isinstance(shape, tuple):
-                arr_len = 1
-                for val in shape:
-                    arr_len *= val
-            else:
-                arr_len = shape
             self.check_ret_array(dtype, arr_len)
         dtype = np.dtype(dtype)
-        buff = self.recv_payload()
-        assert len(buff) == dtype.itemsize * int(np.prod(shape))
+        self.recv(fmt='')
+        buff = self.recv_all(dtype.itemsize * arr_len)
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
 
     def recv_tuple(self, fmt, check_type=True):
         if check_type:
             self.check_ret_tuple()
-        fmt = '>' + fmt
-        buff = self.recv_payload()
-        assert len(buff) == struct.calcsize(fmt)
-        return tuple(struct.unpack(fmt, buff))
+        return tuple(self.recv(fmt))
 
     def __del__(self):
         if hasattr(self, 'sock'):
