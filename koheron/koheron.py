@@ -119,11 +119,7 @@ def append(buff, value, size):
         append(buff, value >> 32, 4)
         append(buff, value, 4)
 
-def append_array(buff, array, array_params):
-    if 'N' in array_params and int(array_params['N']) != len(array):
-        raise ValueError('Invalid array length. Expected {} but received {}.'
-                         .format(array_params['N'], len(array)))
-
+def append_vector(buff, array, array_params):
     if cpp_to_np_types[array_params['T']] != array.dtype:
         raise TypeError('Invalid array type. Expected {} but received {}.'
                         .format(cpp_to_np_types[array_params['T']], array.dtype))
@@ -131,6 +127,17 @@ def append_array(buff, array, array_params):
     arr_bytes = bytearray(array)
     append(buff, len(arr_bytes), 8)
     buff += arr_bytes
+
+def append_array(buff, array, array_params):
+    if int(array_params['N']) != len(array):
+        raise ValueError('Invalid array length. Expected {} but received {}.'
+                         .format(array_params['N'], len(array)))
+
+    if cpp_to_np_types[array_params['T']] != array.dtype:
+        raise TypeError('Invalid array type. Expected {} but received {}.'
+                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+
+    buff += bytearray(array)
 
 # http://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
 def float_to_bits(f):
@@ -181,7 +188,7 @@ def build_payload(cmd_args, args):
         elif is_std_vector(arg['type']):
             dump_scalar_pack(payload, scalar_pack)
             scalar_pack = bytearray()
-            append_array(payload, args[i], get_std_vector_params(arg['type']))
+            append_vector(payload, args[i], get_std_vector_params(arg['type']))
         elif is_std_string(arg['type']):
             dump_scalar_pack(payload, scalar_pack)
             scalar_pack = bytearray()
