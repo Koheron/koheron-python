@@ -88,12 +88,20 @@ class Tests:
         return self.client.recv_array(48, dtype='uint32')
 
     @command()
+    def send_std_array4(self, add):
+        return self.client.recv_array(48, dtype='uint32')
+
+    @command()
     def send_std_vector(self):
         return self.client.recv_vector(dtype='float32')
 
     @command()
     def send_std_vector2(self):
         return self.client.recv_vector(dtype='uint32')
+
+    @command()
+    def send_std_vector3(self):
+        return self.client.recv_vector(dtype='int32')
 
     @command()
     def rcv_std_array(self, u, f, arr, d, i):
@@ -268,6 +276,13 @@ def test_send_std_vector2(tests):
         assert array[i] == i*i
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_send_std_vector3(tests):
+    array = tests.send_std_vector3()
+    assert len(array) == 20
+    for i in range(len(array)):
+        assert array[i] == -i*i
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_std_array(tests):
     array = tests.send_std_array()
     for i in range(len(array)):
@@ -284,6 +299,12 @@ def test_send_std_array3(tests):
     array = tests.send_std_array3(5890)
     for i in range(len(array)):
         assert array[i] == 5890 + i
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_send_std_array4(tests):
+    array = tests.send_std_array4(780)
+    for i in range(len(array)):
+        assert array[i] == 780 + 2 * i
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_rcv_std_array(tests):
