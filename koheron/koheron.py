@@ -146,58 +146,44 @@ def float_to_bits(f):
 def double_to_bits(d):
     return struct.unpack('>q', struct.pack('>d', d))[0]
 
-def dump_scalar_pack(buff, scalar_pack):
-    if len(scalar_pack) > 0:
-        append(buff, len(scalar_pack), 8)
-        buff += scalar_pack
-
 def build_payload(cmd_args, args):
     payload = bytearray()
-    scalar_pack = bytearray()
 
     if len(cmd_args) != len(args):
         raise ValueError('Invalid number of arguments. Expected {} but received {}.'
                          .format(len(cmd_args), len(args)))
 
     if len(cmd_args) == 0:
-        append(payload, 0, 8)
         return payload
 
     for i, arg in enumerate(cmd_args):
         if arg['type'] in ['uint8_t','int8_t']:
-            append(scalar_pack, args[i], 1)
+            append(payload, args[i], 1)
         elif arg['type'] in ['uint16_t','int16_t']:
-            append(scalar_pack, args[i], 2)
+            append(payload, args[i], 2)
         elif arg['type'] in ['uint32_t','int32_t']:
-            append(scalar_pack, args[i], 4)
+            append(payload, args[i], 4)
         elif arg['type'] in ['uint64_t','int64_t']:
-            append(scalar_pack, args[i], 8)
+            append(payload, args[i], 8)
         elif arg['type'] == 'float':
-            append(scalar_pack, float_to_bits(args[i]), 4)
+            append(payload, float_to_bits(args[i]), 4)
         elif arg['type'] == 'double':
-            append(scalar_pack, double_to_bits(args[i]), 8)
+            append(payload, double_to_bits(args[i]), 8)
         elif arg['type'] == 'bool':
             if args[i]:
-                append(scalar_pack, 1, 1)
+                append(payload, 1, 1)
             else:
-                append(scalar_pack, 0, 1)
+                append(payload, 0, 1)
         elif is_std_array(arg['type']):
-            dump_scalar_pack(payload, scalar_pack)
-            scalar_pack = bytearray()
             append_array(payload, args[i], get_std_array_params(arg['type']))
         elif is_std_vector(arg['type']):
-            dump_scalar_pack(payload, scalar_pack)
-            scalar_pack = bytearray()
             append_vector(payload, args[i], get_std_vector_params(arg['type']))
         elif is_std_string(arg['type']):
-            dump_scalar_pack(payload, scalar_pack)
-            scalar_pack = bytearray()
             append(payload, len(args[i]), 8)
             payload.extend(args[i].encode())
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
-    dump_scalar_pack(payload, scalar_pack)
     return payload
 
 def is_std_array(_type):
