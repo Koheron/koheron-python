@@ -224,7 +224,7 @@ cpp_to_np_types = {
 # --------------------------------------------
 
 class KoheronClient:
-    def __init__(self, host="", port=36000, unixsock=""):
+    def __init__(self, host='', port=36000, unixsock=''):
         ''' Initialize connection with koheron-server
 
         Args:
@@ -242,7 +242,7 @@ class KoheronClient:
         self.unixsock = unixsock
         self.is_connected = False
 
-        if host != "":
+        if host != '':
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -260,7 +260,7 @@ class KoheronClient:
                 self.is_connected = True
             except BaseException as e:
                 raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
-        elif unixsock != "":
+        elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
@@ -283,8 +283,9 @@ class KoheronClient:
         server_version_ = server_version.split('.')
         client_version_ = __version__.split('.')
         if  (client_version_[0] != server_version_[0]) or (client_version_[1] < server_version_[1]):
-            print("Warning: your client version {} is incompatible with the server version {}".format(__version__, server_version))
-            print("Upgrade your client with 'pip install --upgrade koheron'")
+            print('Warning: your client version {} is incompatible with the server version {}'
+                   .format(__version__, server_version))
+            print('Upgrade your client with "pip install --upgrade koheron"')
         
     def load_devices(self):
         try:
@@ -380,7 +381,7 @@ class KoheronClient:
         assert reserved == 0
         return self.recv_all(length)
 
-    def recv(self, fmt="I"):
+    def recv(self, fmt='I'):
         fmt_ = '>IHH' + fmt
         t = struct.unpack(fmt_, self.recv_all(struct.calcsize(fmt_)))[3:]
         if len(t) == 1:
