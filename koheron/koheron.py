@@ -375,16 +375,18 @@ class KoheronClient:
                 raise ConnectionError('recv_all: Socket connection broken.')
         return b''.join(data)
 
-    def recv_payload(self):
-        reserved, class_id, func_id, length = struct.unpack('>IHHQ', self.recv_all(struct.calcsize('>IHHQ')))
+    def recv_dynamic_payload(self):
+        reserved, class_id, func_id, length = struct.unpack('>IHHI', self.recv_all(struct.calcsize('>IHHI')))
         assert reserved == 0
         return self.recv_all(length)
 
     def recv(self, fmt="I"):
-        fmt_ = '>' + fmt
-        buff = self.recv_payload()
-        assert len(buff) == struct.calcsize(fmt_)
-        return struct.unpack(fmt_, buff)[0]
+        fmt_ = '>IHH' + fmt
+        t = struct.unpack(fmt_, self.recv_all(struct.calcsize(fmt_)))[3:]
+        if len(t) == 1:
+            return t[0]
+        else:
+            return t
 
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])
@@ -413,7 +415,7 @@ class KoheronClient:
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])
-        return self.recv_payload().decode('utf8')
+        return self.recv_dynamic_payload().decode('utf8')
 
     def recv_json(self, check_type=True):
         if check_type:
@@ -425,31 +427,23 @@ class KoheronClient:
         if check_type:
             self.check_ret_vector(dtype)
         dtype = np.dtype(dtype)
-        buff = self.recv_payload()
+        buff = self.recv_dynamic_payload()
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<'))
 
     def recv_array(self, shape, dtype='uint32', check_type=True):
         '''Receive a numpy array with known shape.'''
+        arr_len = int(np.prod(shape))
         if check_type:
-            if isinstance(shape, tuple):
-                arr_len = 1
-                for val in shape:
-                    arr_len *= val
-            else:
-                arr_len = shape
             self.check_ret_array(dtype, arr_len)
         dtype = np.dtype(dtype)
-        buff = self.recv_payload()
-        assert len(buff) == dtype.itemsize * int(np.prod(shape))
+        self.recv(fmt='')
+        buff = self.recv_all(dtype.itemsize * arr_len)
         return np.frombuffer(buff, dtype=dtype.newbyteorder('<')).reshape(shape)
 
     def recv_tuple(self, fmt, check_type=True):
         if check_type:
             self.check_ret_tuple()
-        fmt = '>' + fmt
-        buff = self.recv_payload()
-        assert len(buff) == struct.calcsize(fmt)
-        return tuple(struct.unpack(fmt, buff))
+        return tuple(self.recv(fmt))
 
     def __del__(self):
         if hasattr(self, 'sock'):
