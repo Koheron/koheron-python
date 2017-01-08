@@ -6,7 +6,7 @@ dependencies:
   cache_directories:
     - "venv"
   pre:
-    - pip install twine pytest numpy
+    - pip install twine
     - make venv/py2 venv/py3
     # https://discuss.circleci.com/t/caching-apt-get-install-results/563
     - sudo apt-get update -y; true
