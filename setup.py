@@ -24,5 +24,6 @@ setup(
     entry_points='''
         [console_scripts]
         koheron=koheron.cli:cli
+        koheron-sdk=koheron.cli:sdk
     ''',
 )

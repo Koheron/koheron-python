@@ -1,7 +1,7 @@
 import click
 
 # --------------------------------------------
-# Command Line Interface
+# Call koheron-server
 # --------------------------------------------
 
 class ConnectionType(object):
@@ -19,7 +19,7 @@ def cli(ctx, host, unixsock):
 
 @cli.command()
 def version():
-    """ Get the version of koheron python library."""
+    ''' Get the version of koheron python library '''
     from .version import __version__
     click.echo(__version__)
 
@@ -28,7 +28,7 @@ def version():
 @click.argument('cmd', nargs=1)
 @click.argument('args', nargs=-1, type=click.INT)
 def common(conn_type, cmd, args):
-    """ Call the common commands."""
+    ''' Call the common commands '''
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     from .common import Common
@@ -42,7 +42,7 @@ def common(conn_type, cmd, args):
 @cli.command()
 @click.pass_obj
 def devices(conn_type):
-    """ Get the list of devices."""
+    ''' Get the list of devices '''
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     click.echo(client.devices_idx)
@@ -51,7 +51,7 @@ def devices(conn_type):
 @click.pass_obj
 @click.option('--device', default=None)
 def commands(conn_type, device):
-    """ Get the list of commands for a specified device."""
+    ''' Get the list of commands for a specified device '''
     from .koheron import KoheronClient
     client = KoheronClient(host=conn_type.host, unixsock=conn_type.unixsock)
     if device is None:
@@ -60,12 +60,14 @@ def commands(conn_type, device):
         device_idx = client.devices_idx[device]
         click.echo(client.commands[device_idx])
 
-# Commands that call the HTTP API:
+# --------------------------------------------
+# Call HTTP API
+# --------------------------------------------
 
 @cli.command()
 @click.pass_obj
 def live(conn_type):
-    """Get name and version of live instrument"""
+    ''' Get name and version of live instrument '''
     from .koheron import live_instrument
     name, version = live_instrument(conn_type.host)
     click.echo('{}-{}'.format(name, version))
@@ -75,7 +77,7 @@ def live(conn_type):
 @click.argument('instrument_zip')
 @click.option('--run', is_flag=True)
 def upload(conn_type, instrument_zip, run):
-    """Upload instrument.zip"""
+    ''' Upload instrument.zip '''
     from .koheron import upload_instrument
     upload_instrument(conn_type.host, instrument_zip, run=run)
 
@@ -84,7 +86,7 @@ def upload(conn_type, instrument_zip, run):
 @click.argument('instrument_zip')
 @click.option('--run', is_flag=True)
 def update(conn_type, instrument_zip, run):
-    """Update instrument.zip"""
+    ''' Update instrument.zip '''
     from .koheron import update_instrument
     update_instrument(conn_type.host, instrument_zip, run=run)
 
@@ -94,6 +96,44 @@ def update(conn_type, instrument_zip, run):
 @click.argument('instrument_version', required=False)
 @click.option('--restart', is_flag=True)
 def run(conn_type, instrument_name, instrument_version, restart):
-    """Run a given instrument."""
+    ''' Run a given instrument '''
     from .koheron import run_instrument
     run_instrument(conn_type.host, instrument_name, instrument_version, restart=restart)
+
+# --------------------------------------------
+# Call koheron-sdk
+# --------------------------------------------
+
+class SDK(object):
+    def __init__(self, version, path):
+        self.version = version
+        self.path = path
+
+@click.group()
+@click.option('--version', default='v0.12.0', help='SDK version to install', envvar='KOHERON_SDK_VERSION')
+@click.option('--path', default='/opt/koheron', help='SDK installation path', envvar='KOHERON_SDK_PATH')
+@click.pass_context
+def sdk(ctx, version, path):
+    ctx.obj = SDK(version, path)
+
+@sdk.command()
+@click.pass_obj
+def install(sdk):
+    ''' Install Koheron SDK '''
+    import os
+    import subprocess
+    if not os.path.exists(sdk.path):
+        os.makedirs(sdk.path)
+
+    subprocess.call(['/usr/bin/git', 'clone', '--branch', sdk.version,
+                     'https://github.com/Koheron/koheron-sdk.git', sdk.path])
+
+@sdk.command()
+@click.pass_obj
+def uninstall(sdk):
+    ''' Uninstall Koheron SDK '''
+    import os
+    import shutil
+    if os.path.exists(sdk.path):
+        shutil.rmtree(sdk.path)
+
