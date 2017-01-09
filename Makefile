@@ -32,8 +32,8 @@ $(PY2_VENV): requirements.txt
 
 $(PY3_VENV): requirements.txt
 	test -d $(PY3_VENV) || (virtualenv -p python3 $(PY3_VENV) && \
-		                    $(PY3_VENV)/bin/pip3 install -r requirements.txt && \
-		                    $(PY3_VENV)/bin/pip3 install numpy==1.11.1 pytest)
+	                        $(PY3_VENV)/bin/pip3 install -r requirements.txt && \
+	                        $(PY3_VENV)/bin/pip3 install numpy==1.11.1 pytest)
 
 test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY2_VENV)/bin/python -m pytest -v $(TESTS_PY)

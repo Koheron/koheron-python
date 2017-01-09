@@ -137,3 +137,17 @@ def uninstall(sdk):
     if os.path.exists(sdk.path):
         shutil.rmtree(sdk.path)
 
+@sdk.command()
+@click.pass_obj
+@click.argument('instrument_path')
+def build(sdk, instrument_path):
+    ''' Build an instrument '''
+    import subprocess
+    import os
+    import yaml
+
+    with open(os.path.join(instrument_path, 'config.yml')) as f:
+        instrument_name = yaml.load(f)['instrument']
+
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
+    subprocess.call(['/bin/bash', script_path, sdk.path, instrument_path, instrument_name])
