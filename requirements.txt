@@ -2,5 +2,5 @@ requests==2.11.1
 click
 
 # For koheron-sdk
-yaml
+pyyaml
 jinja2
