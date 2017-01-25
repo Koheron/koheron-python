@@ -12,6 +12,7 @@ setup(
     author_email='hello@koheron.com',
     url='https://github.com/Koheron/koheron-python',
     packages=find_packages(),
+    package_data={'koheron': ['build.sh']},
     license='MIT',
     description='Koheron Python Library',
     long_description='Please see our GitHub README',

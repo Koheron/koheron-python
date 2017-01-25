@@ -141,6 +141,7 @@ def install(sdk):
         shutil.rmtree(tmp_sdk)
         os.remove(tmp_zip)
 
+    print('Koheron SDK version {} successfully installed at {}.'.format(sdk.version, sdk.path))
 
 @sdk.command()
 @click.pass_obj
