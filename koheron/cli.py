@@ -167,7 +167,6 @@ def _run_cmd(cmd_name, sdk, instrument_path):
     instrument_abspath = os.path.join(os.getcwd(), instrument_path)
     subprocess.call(['/bin/bash', script_path, cmd_name, sdk.path, instrument_abspath, instrument_name, sdk.host])
 
-
 @sdk.command()
 @click.pass_obj
 @click.argument('instrument_path')
