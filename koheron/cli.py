@@ -165,7 +165,8 @@ def build(sdk, instrument_path):
         instrument_name = yaml.load(f)['instrument']
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
-    subprocess.call(['/bin/bash', script_path, '--build', sdk.path, instrument_path, instrument_name])
+    instrument_abspath = os.path.join(os.getcwd(), instrument_path)
+    subprocess.call(['/bin/bash', script_path, '--build', sdk.path, instrument_abspath, instrument_name])
 
 @sdk.command()
 @click.pass_obj
@@ -180,4 +181,5 @@ def clean(sdk, instrument_path):
         instrument_name = yaml.load(f)['instrument']
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
-    subprocess.call(['/bin/bash', script_path, '--clean', sdk.path, instrument_path, instrument_name])
+    instrument_abspath = os.path.join(os.getcwd(), instrument_path)
+    subprocess.call(['/bin/bash', script_path, '--clean', sdk.path, instrument_abspath, instrument_name])
