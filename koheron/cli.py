@@ -141,7 +141,7 @@ def install(sdk):
         shutil.rmtree(tmp_sdk)
         os.remove(tmp_zip)
 
-    print('Koheron SDK version {} successfully installed at {}.'.format(sdk.version, sdk.path))
+    click.echo('Koheron SDK version {} successfully installed at {}.'.format(sdk.version, sdk.path))
 
 @sdk.command()
 @click.pass_obj
@@ -165,4 +165,19 @@ def build(sdk, instrument_path):
         instrument_name = yaml.load(f)['instrument']
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
-    subprocess.call(['/bin/bash', script_path, sdk.path, instrument_path, instrument_name])
+    subprocess.call(['/bin/bash', script_path, '--build', sdk.path, instrument_path, instrument_name])
+
+@sdk.command()
+@click.pass_obj
+@click.argument('instrument_path')
+def clean(sdk, instrument_path):
+    ''' Clean an instrument '''
+    import subprocess
+    import os
+    import yaml
+
+    with open(os.path.join(instrument_path, 'config.yml')) as f:
+        instrument_name = yaml.load(f)['instrument']
+
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
+    subprocess.call(['/bin/bash', script_path, '--clean', sdk.path, instrument_path, instrument_name])
