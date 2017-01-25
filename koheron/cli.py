@@ -122,11 +122,25 @@ def install(sdk):
     ''' Install Koheron SDK '''
     import os
     import subprocess
-    if not os.path.exists(sdk.path):
-        os.makedirs(sdk.path)
+    import zipfile
+    import shutil
 
-    subprocess.call(['/usr/bin/git', 'clone', '--branch', sdk.version,
-                     'https://github.com/Koheron/koheron-sdk.git', sdk.path])
+    if os.path.exists(sdk.path):
+        shutil.rmtree(sdk.path)
+
+    # subprocess.call(['/usr/bin/git', 'clone', '--branch', sdk.version,
+    #                  'https://github.com/Koheron/koheron-sdk.git', sdk.path])
+
+    tmp_zip = '/tmp/koheron-sdk.zip'
+    tmp_sdk = '/tmp/koheron-sdk-tmp'
+
+    subprocess.call(['/usr/bin/curl', '-L', '-o', tmp_zip, 'http://github.com/koheron/koheron-sdk/zipball/{}/'.format(sdk.version)])
+    with zipfile.ZipFile(tmp_zip, 'r') as sdk_zip:
+        sdk_zip.extractall(tmp_sdk)
+        shutil.copytree(os.path.join(tmp_sdk, sdk_zip.namelist()[0]), sdk.path)
+        shutil.rmtree(tmp_sdk)
+        os.remove(tmp_zip)
+
 
 @sdk.command()
 @click.pass_obj
