@@ -152,11 +152,7 @@ def uninstall(sdk):
     if os.path.exists(sdk.path):
         shutil.rmtree(sdk.path)
 
-@sdk.command()
-@click.pass_obj
-@click.argument('instrument_path')
-def build(sdk, instrument_path):
-    ''' Build an instrument '''
+def _run_cmd(cmd_name, sdk, instrument_path):
     import subprocess
     import os
     import yaml
@@ -166,20 +162,19 @@ def build(sdk, instrument_path):
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
     instrument_abspath = os.path.join(os.getcwd(), instrument_path)
-    subprocess.call(['/bin/bash', script_path, '--build', sdk.path, instrument_abspath, instrument_name])
+    subprocess.call(['/bin/bash', script_path, cmd_name, sdk.path, instrument_abspath, instrument_name])
+
+
+@sdk.command()
+@click.pass_obj
+@click.argument('instrument_path')
+def build(sdk, instrument_path):
+    ''' Build an instrument '''
+    _run_cmd('--build', sdk, instrument_path)
 
 @sdk.command()
 @click.pass_obj
 @click.argument('instrument_path')
 def clean(sdk, instrument_path):
     ''' Clean an instrument '''
-    import subprocess
-    import os
-    import yaml
-
-    with open(os.path.join(instrument_path, 'config.yml')) as f:
-        instrument_name = yaml.load(f)['instrument']
-
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
-    instrument_abspath = os.path.join(os.getcwd(), instrument_path)
-    subprocess.call(['/bin/bash', script_path, '--clean', sdk.path, instrument_abspath, instrument_name])
+    _run_cmd('--clean', sdk, instrument_path)
