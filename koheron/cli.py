@@ -105,16 +105,18 @@ def run(conn_type, instrument_name, instrument_version, restart):
 # --------------------------------------------
 
 class SDK(object):
-    def __init__(self, version, path):
+    def __init__(self, version, path, host):
         self.version = version
         self.path = path
+        self.host = host
 
 @click.group()
 @click.option('--version', default='v0.12.0', help='SDK version.', envvar='KOHERON_SDK_VERSION')
 @click.option('--path', default='/opt/koheron', help='SDK installation path.', envvar='KOHERON_SDK_PATH')
+@click.option('--host', default='', help='Host ip address.', envvar='KOHERON_SDK_PATH')
 @click.pass_context
-def sdk(ctx, version, path):
-    ctx.obj = SDK(version, path)
+def sdk(ctx, version, path, host):
+    ctx.obj = SDK(version, path, host)
 
 @sdk.command()
 @click.pass_obj
@@ -135,6 +137,7 @@ def install(sdk):
     tmp_sdk = '/tmp/koheron-sdk-tmp'
 
     subprocess.call(['/usr/bin/curl', '-L', '-o', tmp_zip, 'http://github.com/koheron/koheron-sdk/zipball/{}/'.format(sdk.version)])
+
     with zipfile.ZipFile(tmp_zip, 'r') as sdk_zip:
         sdk_zip.extractall(tmp_sdk)
         shutil.copytree(os.path.join(tmp_sdk, sdk_zip.namelist()[0]), sdk.path)
@@ -162,7 +165,7 @@ def _run_cmd(cmd_name, sdk, instrument_path):
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
     instrument_abspath = os.path.join(os.getcwd(), instrument_path)
-    subprocess.call(['/bin/bash', script_path, cmd_name, sdk.path, instrument_abspath, instrument_name])
+    subprocess.call(['/bin/bash', script_path, cmd_name, sdk.path, instrument_abspath, instrument_name, sdk.host])
 
 
 @sdk.command()
@@ -178,3 +181,10 @@ def build(sdk, instrument_path):
 def clean(sdk, instrument_path):
     ''' Clean an instrument '''
     _run_cmd('--clean', sdk, instrument_path)
+
+@sdk.command()
+@click.pass_obj
+@click.argument('instrument_path')
+def run(sdk, instrument_path):
+    ''' Build and run an instrument on the given host '''
+    _run_cmd('--build', sdk, instrument_path)
