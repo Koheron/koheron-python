@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 import pytest
 import click
 from click.testing import CliRunner
@@ -15,3 +16,8 @@ def test_sdk_install():
     result = runner.invoke(cli.sdk, ['--path=' + path, '--version=' + version, 'install'])
     assert result.exit_code == 0
     assert result.output == 'Koheron SDK version {} successfully installed at {}.\n'.format(version, path)
+    assert os.path.exists(path)
+    # Check proper cleaning of temporary install files
+    assert not os.path.exists('/tmp/koheron-sdk.zip')
+    assert not os.path.exists('/tmp/koheron-sdk-tmp')
+
