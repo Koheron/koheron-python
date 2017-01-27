@@ -165,7 +165,7 @@ def _run_cmd(cmd_name, sdk, instrument_path):
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
     instrument_abspath = os.path.join(os.getcwd(), instrument_path)
-    subprocess.call(['/bin/bash', script_path, cmd_name, sdk.path, instrument_abspath, instrument_name, sdk.host])
+    subprocess.call(['/bin/bash', script_path, cmd_name, instrument_abspath, instrument_name, sdk.host])
 
 @sdk.command()
 @click.pass_obj
