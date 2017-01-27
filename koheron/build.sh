@@ -3,12 +3,17 @@
 set -e
 
 MAKE_CMD=$1
-KOHERON_SDK_PATH=$2
+# KOHERON_SDK_PATH=$2
 INSTRUMENT_DIR=$3
 INSTRUMENT=$4
 HOST=$5
 
-# DIR="$(sed 's,/*[^/]\+/*$,,' <<< ${INSTRUMENT_DIR})" # Remove last folder from path
+KOHERON_SDK_PATH=${INSTRUMENT_DIR}/tmp
+
+# Install koheron-sdk in the instrument directory if not already there
+if [ ! -d "${KOHERON_SDK_PATH}" ]; then
+    koheron-sdk --path=${KOHERON_SDK_PATH} --version=develop install
+fi
 
 case "${MAKE_CMD}" in
     --build)
