@@ -196,4 +196,4 @@ def clean(sdk, instrument_path):
 @click.argument('instrument_path', nargs=-1)
 def run(sdk, instrument_path):
     ''' Build and run an instrument on the given host '''
-    _run_cmd('--build', sdk, instrument_path)
+    _run_cmd('--run', sdk, instrument_path)
