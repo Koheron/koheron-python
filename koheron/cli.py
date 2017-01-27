@@ -168,7 +168,7 @@ def _run_cmd(cmd_name, sdk, instrument_path):
     config_yml_path = os.path.join(ipath, 'config.yml')
 
     if not os.path.exists(config_yml_path):
-        raise RuntimeError('{} is not an instrument directory'.format(ipath))
+        raise click.ClickException('\'{}\' is not an instrument directory [No config.yml found]'.format(ipath))
 
     with open(config_yml_path) as f:
         instrument_name = yaml.load(f)['instrument']
