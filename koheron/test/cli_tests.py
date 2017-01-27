@@ -5,6 +5,7 @@ import sys
 import os
 import pytest
 import click
+import json
 from click.testing import CliRunner
 
 from .. import cli
@@ -22,7 +23,9 @@ def test_devices():
     runner = CliRunner()
     result = runner.invoke(cli.cli, ['--host=127.0.0.1', 'devices'])
     assert result.exit_code == 0
-    assert result.output == "{u'Tests': 2, u'UsesContext': 5, u'ExceptionTests': 4, u'KServer': 1, u'Benchmarks': 3}\n"
+    a = json.loads(result.output.replace("u'", "\"").replace("'", "\""))
+    b = json.loads('{"Tests": 2, "UsesContext": 5, "ExceptionTests": 4, "KServer": 1, "Benchmarks": 3}')
+    assert sorted(a.items()) == sorted(b.items())
 
 # SDK
 
