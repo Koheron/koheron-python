@@ -40,3 +40,9 @@ def test_sdk_install():
     # Check proper cleaning of temporary install files
     assert not os.path.exists('/tmp/koheron-sdk.zip')
     assert not os.path.exists('/tmp/koheron-sdk-tmp')
+
+def test_sdk_build_exception():
+    runner = CliRunner()
+    result = runner.invoke(cli.sdk, ['build', '.'])
+    assert result.exit_code == 1
+    assert result.output == "Error: '.' is not an instrument directory [No config.yml found]\n"
