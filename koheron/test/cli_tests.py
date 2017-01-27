@@ -11,7 +11,7 @@ from .. import cli
 
 def test_sdk_install():
     path = '/tmp/koheron'
-    version = 'reorg_drivers'
+    version = 'develop'
     runner = CliRunner()
     result = runner.invoke(cli.sdk, ['--path=' + path, '--version=' + version, 'install'])
     assert result.exit_code == 0
@@ -20,4 +20,3 @@ def test_sdk_install():
     # Check proper cleaning of temporary install files
     assert not os.path.exists('/tmp/koheron-sdk.zip')
     assert not os.path.exists('/tmp/koheron-sdk-tmp')
-
