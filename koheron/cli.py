@@ -160,30 +160,40 @@ def _run_cmd(cmd_name, sdk, instrument_path):
     import os
     import yaml
 
-    with open(os.path.join(instrument_path, 'config.yml')) as f:
+    if len(instrument_path) == 0:
+        ipath = os.getcwd()
+    else:
+        ipath = instrument_path[0]
+
+    config_yml_path = os.path.join(ipath, 'config.yml')
+
+    if not os.path.exists(config_yml_path):
+        raise RuntimeError('{} is not an instrument directory'.format(ipath))
+
+    with open(config_yml_path) as f:
         instrument_name = yaml.load(f)['instrument']
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build.sh')
-    instrument_abspath = os.path.join(os.getcwd(), instrument_path)
+    instrument_abspath = os.path.join(os.getcwd(), ipath)
     subprocess.call(['/bin/bash', script_path, cmd_name, instrument_abspath, instrument_name, sdk.host])
 
 @sdk.command()
 @click.pass_obj
-@click.argument('instrument_path')
+@click.argument('instrument_path', nargs=-1)
 def build(sdk, instrument_path):
     ''' Build an instrument '''
     _run_cmd('--build', sdk, instrument_path)
 
 @sdk.command()
 @click.pass_obj
-@click.argument('instrument_path')
+@click.argument('instrument_path', nargs=-1)
 def clean(sdk, instrument_path):
     ''' Clean an instrument '''
     _run_cmd('--clean', sdk, instrument_path)
 
 @sdk.command()
 @click.pass_obj
-@click.argument('instrument_path')
+@click.argument('instrument_path', nargs=-1)
 def run(sdk, instrument_path):
     ''' Build and run an instrument on the given host '''
     _run_cmd('--build', sdk, instrument_path)
