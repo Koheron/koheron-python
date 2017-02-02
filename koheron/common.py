@@ -50,8 +50,7 @@ class Common(object):
 
     @command()
     def get_dna(self):
-        id_array = self.client.recv_array(2, dtype='uint32')
-        return ''.join('{:02x}'.format(i) for i in id_array)
+        return self.client.recv_uint64()
 
     @command()
     def set_led(self, value): pass
