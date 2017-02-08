@@ -47,10 +47,10 @@ test_common:
 # Deploy
 # -------------------------------------------------------------------------------------
 
-deploy: clean_dist
+deploy: clean_dist $(PY2_VENV)
 	@echo PYPI_VERSION = $(PYPI_VERSION)
-	@echo CURRENT_VERSION = $(CURRENT_VERSION)
-ifneq ($(PYPI_VERSION),$(CURRENT_VERSION))
+	# @echo CURRENT_VERSION = $(CURRENT_VERSION)
+ifneq ($(PYPI_VERSION),$(shell $(PY2_VENV)/bin/python -c "from koheron.version import __version__; print(__version__)"))
 	python setup.py sdist bdist_wheel
 	twine upload -u $(PYPI_USERNAME) -p $(PYPI_PASSWORD) dist/*
 endif
