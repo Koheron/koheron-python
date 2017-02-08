@@ -111,7 +111,7 @@ class SDK(object):
         self.host = host
 
 @click.group()
-@click.option('--version', default='v0.13.0-rc', help='SDK version.', envvar='KOHERON_SDK_VERSION')
+@click.option('--version', default='v0.13.0', help='SDK version.', envvar='KOHERON_SDK_VERSION')
 @click.option('--path', default='/tmp/koheron', help='SDK installation path.', envvar='KOHERON_SDK_PATH')
 @click.option('--host', default='', help='Host ip address.', envvar='KOHERON_SDK_PATH')
 @click.pass_context
