@@ -3,7 +3,7 @@ TMP = tmp
 TEST_VENV = venv
 PY2_VENV = $(TEST_VENV)/py2
 PY3_VENV = $(TEST_VENV)/py3
-TESTS_PY = koheron/test/tests.py koheron/test/exception_tests.py koheron/test/context_tests.py
+TESTS_PY = koheron/test/tests.py koheron/test/exception_tests.py koheron/test/context_tests.py koheron/test/cli_tests.py
 
 PYPI_VERSION=$(shell curl -s 'https://pypi.python.org/pypi/koheron/json'| PYTHONIOENCODING=utf8 python -c "import sys, json; print json.load(sys.stdin)['info']['version']")
 CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; print(__version__)")
@@ -15,7 +15,7 @@ CURRENT_VERSION=$(shell python -c "from koheron.version import __version__; prin
 # -------------------------------------------------------------------------------------
 
 KOHERON_SERVER_DEST=$(TMP)
-KOHERON_SERVER_BRANCH = v0.12.0
+KOHERON_SERVER_BRANCH = v0.13.0
 
 KOHERON_SERVER_MK=build_run.mk
 DUMMY:=$(shell curl https://raw.githubusercontent.com/Koheron/koheron-server/$(KOHERON_SERVER_BRANCH)/scripts/build_run.mk > $(KOHERON_SERVER_MK))
@@ -40,9 +40,8 @@ test: $(PY2_VENV) $(PY3_VENV) $(TESTS_PY)
 	PYTEST_UNIXSOCK=/tmp/kserver_local.sock $(PY3_VENV)/bin/python3 -m pytest -v $(TESTS_PY)
 
 test_common:
-	python -m pytest -v koheron/test/test_common.py
-	python3 -m pytest -v koheron/test/test_common.py
-	cat server.log
+	$(PY2_VENV)/bin/python -m pytest -v koheron/test/test_common.py
+	$(PY3_VENV)/bin/python3 -m pytest -v koheron/test/test_common.py
 
 # -------------------------------------------------------------------------------------
 # Deploy

@@ -6,11 +6,11 @@ import struct
 import numpy as np
 
 sys.path = [".."] + sys.path
-from koheron import KoheronClient, run_instrument, Common
+from koheron import connect, Common
 
 host = os.getenv('HOST','192.168.1.100')
 project = os.getenv('NAME','')
-client = run_instrument(host, project)
+client = connect(host, project)
 common = Common(client)
 
 def ip2long(ip):
@@ -34,7 +34,7 @@ class TestCommon:
         assert common.get_dna() != ''
 
     def test_get_server_version(self):
-        assert len(common.get_server_version()) == 7
+        assert len(common.get_server_version().split('.')) == 4
 
     def test_get_instrument_config(self):
         config = common.get_instrument_config()
