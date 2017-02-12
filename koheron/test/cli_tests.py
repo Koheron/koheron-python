@@ -31,7 +31,7 @@ def test_devices():
 
 def test_sdk_install():
     path = '/tmp/koheron'
-    version = 'v0.13.0-rc'
+    version = 'v0.13.0' # Use tag here not branch. A tag will always exist.
     runner = CliRunner()
     result = runner.invoke(cli.sdk, ['--path=' + path, '--version=' + version, 'install'])
     assert result.exit_code == 0
