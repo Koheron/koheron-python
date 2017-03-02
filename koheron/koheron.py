@@ -188,6 +188,14 @@ def build_payload(cmd_args, args):
         elif is_std_string(arg['type']):
             append(payload, len(args[i]), 4)
             payload.extend(args[i].encode())
+        elif is_std_complex(arg['type']):
+            scal_t = get_std_complex_params(arg['type'])
+
+            if scal_t == 'float':
+                append(payload, float_to_bits(args[i].real), 4)
+                append(payload, float_to_bits(args[i].imag), 4)
+            else:
+                raise ValueError('Unsupported scalar type "' + scal_t + '" for complex number')
         else:
             raise ValueError('Unsupported type "' + arg['type'] + '"')
 
@@ -202,6 +210,9 @@ def is_std_vector(_type):
 def is_std_string(_type):
     return _type.strip() == 'std::string'
 
+def is_std_complex(_type):
+    return _type.split('<')[0].strip() == 'std::complex'
+
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
 
@@ -214,6 +225,9 @@ def get_std_array_params(_type):
 
 def get_std_vector_params(_type):
     return {'T': _type.split('<')[1].split('>')[0].strip()}
+
+def get_std_complex_params(_type):
+    return _type.split('<')[1].split('>')[0].strip()
 
 cpp_to_np_types = {
   'bool': 'bool',
