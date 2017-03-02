@@ -64,6 +64,10 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def set_complex_float_double(self, u, z32, z64, i):
+        return self.client.recv_bool()
+
+    @command()
     def read_uint64(self):
         return self.client.recv_uint64()
 
@@ -264,6 +268,14 @@ def test_set_complex_float(tests):
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_set_complex_double(tests):
     assert tests.set_complex_double((1.428571428571428492127 + 2.654798454646j))
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_set_complex_float_double(tests):
+    assert tests.set_complex_float_double(
+                2225073854759576792,
+                (0.4294967 + 0.3559151j),
+                (0.4741953746153866 + 0.314159265358979323846j),
+                -9223372036854775805)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_set_double(tests):
