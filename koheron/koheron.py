@@ -194,6 +194,9 @@ def build_payload(cmd_args, args):
             if scal_t == 'float':
                 append(payload, float_to_bits(args[i].real), 4)
                 append(payload, float_to_bits(args[i].imag), 4)
+            elif scal_t == 'double':
+                append(payload, double_to_bits(args[i].real), 8)
+                append(payload, double_to_bits(args[i].imag), 8)
             else:
                 raise ValueError('Unsupported scalar type "' + scal_t + '" for complex number')
         else:
