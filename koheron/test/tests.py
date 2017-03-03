@@ -204,7 +204,15 @@ class Tests:
         return self.client.recv_tuple('bbhhii')
 
     @command()
+    def get_tuple5(self):
+        return self.client.recv_tuple('?ZfzH')
+
+    @command()
     def get_cplx_float(self):
+        return self.client.recv_complex_float()
+
+    @command()
+    def get_cplx_float2(self):
         return self.client.recv_complex_float()
 
 # Unit Tests
@@ -503,7 +511,24 @@ def test_get_tuple4(tests):
     assert tup[5] == 2147483647
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_get_tuple5(tests):
+    tup = tests.get_tuple5()
+    assert not tup[0]
+    assert abs(tup[1].real - 3.14159265358979323846) < 1E-14
+    assert abs(tup[1].imag + 9223372036854775807) < 1E-14
+    assert abs(tup[2] - 507.3858) < 5E-6
+    assert abs(tup[3].real - 0.74231) < 1E-6
+    assert abs(tup[3].imag + 1.89793) < 1E-6
+    assert tup[4] == 6553
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_cplx_float(tests):
     z = tests.get_cplx_float()
     assert abs(z.real - 3.14159) < 1E-6
     assert abs(z.imag + 0.47419) < 1E-6
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_get_cplx_float2(tests):
+    z = tests.get_cplx_float2()
+    assert abs(z.real - 0.73858) < 1E-6
+    assert abs(z.imag + 0.79324) < 1E-6

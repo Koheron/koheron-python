@@ -473,7 +473,20 @@ class KoheronClient:
     def recv_tuple(self, fmt, check_type=True):
         if check_type:
             self.check_ret_tuple()
-        return tuple(self.recv(fmt))
+
+        tup = tuple(self.recv(fmt.replace('z', 'ff').replace('Z', 'dd')))
+
+        ret = []
+        i = 0
+        for c in fmt:
+            if c == 'z' or c == 'Z':
+                ret.append(tup[i] + 1j * tup[i + 1])
+                i += 2
+            else:
+                ret.append(tup[i])
+                i += 1
+
+        return tuple(ret)
 
     def __del__(self):
         if hasattr(self, 'sock'):
