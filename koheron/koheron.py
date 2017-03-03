@@ -442,6 +442,11 @@ class KoheronClient:
         tup = self.recv_tuple('ff', check_type=False)
         return tup[0] + 1j * tup[1]
 
+    def recv_complex_double(self):
+        self.check_ret_type(['std::complex<double>'])
+        tup = self.recv_tuple('dd', check_type=False)
+        return tup[0] + 1j * tup[1]
+
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])

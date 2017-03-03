@@ -215,6 +215,10 @@ class Tests:
     def get_cplx_float2(self):
         return self.client.recv_complex_float()
 
+    @command()
+    def get_cplx_double(self):
+        return self.client.recv_complex_double()
+
 # Unit Tests
 
 unixsock = os.getenv('PYTEST_UNIXSOCK','/tmp/kserver_local.sock')
@@ -532,3 +536,9 @@ def test_get_cplx_float2(tests):
     z = tests.get_cplx_float2()
     assert abs(z.real - 0.73858) < 1E-6
     assert abs(z.imag + 0.79324) < 1E-6
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_get_cplx_double(tests):
+    z = tests.get_cplx_double()
+    assert abs(z.real - 2.71828182845904523536) < 1E-14
+    assert abs(z.imag - 3.14159265358979323846) < 1E-14
