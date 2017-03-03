@@ -437,6 +437,11 @@ class KoheronClient:
         self.check_ret_type(['bool'])
         return self.recv(fmt='?')
 
+    def recv_complex_float(self):
+        self.check_ret_type(['std::complex<float>'])
+        tup = self.recv_tuple('ff', check_type=False)
+        return tup[0] + 1j * tup[1]
+
     def recv_string(self, check_type=True):
         if check_type:
             self.check_ret_type(['std::string', 'const char *', 'const char*'])

@@ -203,6 +203,10 @@ class Tests:
     def get_tuple4(self):
         return self.client.recv_tuple('bbhhii')
 
+    @command()
+    def get_cplx_float(self):
+        return self.client.recv_complex_float()
+
 # Unit Tests
 
 unixsock = os.getenv('PYTEST_UNIXSOCK','/tmp/kserver_local.sock')
@@ -497,3 +501,9 @@ def test_get_tuple4(tests):
     assert tup[3] == 32767
     assert tup[4] == -2147483647
     assert tup[5] == 2147483647
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_get_cplx_float(tests):
+    z = tests.get_cplx_float()
+    assert abs(z.real - 3.14159) < 1E-6
+    assert abs(z.imag + 0.47419) < 1E-6
