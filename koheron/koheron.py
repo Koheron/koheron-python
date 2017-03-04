@@ -220,7 +220,7 @@ def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
 
 def get_std_array_params(_type):
-    templates = _type.split('<')[1].split('>')[0].split(',')
+    templates = '>'.join('<'.join(_type.split('<')[1:]).split('>')[0:-1]).split(',')
     return {
       'T': templates[0].strip(),
       'N': templates[1].split('u')[0].strip()
@@ -240,7 +240,9 @@ cpp_to_np_types = {
   'int32_t': 'int32', 'int': 'int32',
   'uint64_t': 'uint64', 'int64_t': 'int64',
   'float': 'float32',
-  'double': 'float64'
+  'double': 'float64',
+  'std::complex<float>': 'complex64',
+  'std::complex<double>': 'complex128'
 }
 
 # --------------------------------------------
