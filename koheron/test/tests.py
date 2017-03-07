@@ -144,6 +144,10 @@ class Tests:
         return self.client.recv_bool()
 
     @command()
+    def rcv_std_array_cplx_double(self, arr):
+        return self.client.recv_bool()
+
+    @command()
     def rcv_std_vector(self, vec):
         return self.client.recv_bool()
 
@@ -404,6 +408,13 @@ def test_rcv_std_array_cplx_float(tests):
     for i in range(len(arr)):
         arr[i] = (2.718 * i + 3.141516j + i * 1j)
     assert tests.rcv_std_array_cplx_float(462378, 1.925797, arr, 2.654798454646)
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_rcv_std_array_cplx_double(tests):
+    arr = np.arange(512, dtype='complex128')
+    for i in range(len(arr)):
+        arr[i] = (0.4232747024077716 * i + 0.80773675317454j + i * 1j)
+    assert tests.rcv_std_array_cplx_double(arr)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_array_length_exception(tests):
