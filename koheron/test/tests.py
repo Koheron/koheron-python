@@ -128,6 +128,10 @@ class Tests:
         return self.client.recv_vector(dtype='complex128')
 
     @command()
+    def send_std_vector_cplx_float(self, mul):
+        return self.client.recv_vector(dtype='complex64')
+
+    @command()
     def rcv_std_array(self, u, f, arr, d, i):
         return self.client.recv_bool()
 
@@ -354,6 +358,15 @@ def test_send_std_vector_cplx_double(tests):
     for i in range(len(array)):
         z = add + (0.46736 * i + 1.29879j * i * i)
         assert np.absolute(array[i] - z) < 1E-14
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_send_std_vector_cplx_float(tests):
+    mul = (0.31645 + 0.23346j)
+    array = tests.send_std_vector_cplx_float(mul)
+    assert len(array) == 256
+    for i in range(len(array)):
+        z = mul * (0.46736 * i / 3 + 1.29879j * i)
+        assert np.absolute(array[i] - z) < 1E-3
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_send_std_array(tests):
