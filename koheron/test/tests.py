@@ -108,6 +108,10 @@ class Tests:
         return self.client.recv_array(1024, dtype='complex64')
 
     @command()
+    def send_std_array_cplx_double(self, add):
+        return self.client.recv_array(512, dtype='complex128')
+
+    @command()
     def send_std_vector(self):
         return self.client.recv_vector(dtype='float32')
 
@@ -233,9 +237,6 @@ tests = Tests(client)
 
 client_unix = KoheronClient(unixsock=unixsock)
 tests_unix = Tests(client_unix)
-
-mul = (2.71828 + 3.141516j);
-array = tests.send_std_array_cplx_float(mul)
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_get_server_version(tests):
@@ -364,6 +365,14 @@ def test_send_std_array_cplx_float(tests):
     for i in range(len(array)):
         z = (i + 2j * i) * mul
         assert np.absolute(array[i] - z) < 1E-3
+
+@pytest.mark.parametrize('tests', [tests, tests_unix])
+def test_send_std_array_cplx_double(tests):
+    add = (3.141516 + 2.71828j);
+    array = tests.send_std_array_cplx_double(add)
+    for i in range(len(array)):
+        z = (3.1415 * i + 0.2j * i) + add
+        assert np.absolute(array[i] - z) < 1E-14
 
 @pytest.mark.parametrize('tests', [tests, tests_unix])
 def test_rcv_std_array(tests):
