@@ -227,7 +227,7 @@ def get_std_array_params(_type):
     }
 
 def get_std_vector_params(_type):
-    return {'T': _type.split('<')[1].split('>')[0].strip()}
+    return {'T': '>'.join('<'.join(_type.split('<')[1:]).split('>')[0:-1]).split(',')[0].strip()}
 
 def get_std_complex_params(_type):
     return _type.split('<')[1].split('>')[0].strip()
