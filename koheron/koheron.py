@@ -17,62 +17,37 @@ ConnectionError = requests.ConnectionError
 # HTTP API
 # --------------------------------------------
 
-def live_instrument(host):
-    live_instrument = requests.get('http://{}/api/instruments/live'.format(host)).json()
-    name = live_instrument['name']
-    version = live_instrument['sha']
-    return name, version
-
-def get_name_version(filename):
-    # filename = 'name-version.zip'
-    tokens = filename.split('.')[0].split('-')
-    name = '-'.join(tokens[:-1])
-    version = tokens[-1]
-    return name, version
+def instrument_status(host):
+    status = requests.get('http://{}/api/instruments'.format(host)).json()
+    return status
 
 def upload_instrument(host, filename, run=False):
     with open(filename, 'rb') as fileobj:
         url = 'http://{}/api/instruments/upload'.format(host)
         r = requests.post(url, files={filename: fileobj})
     if run:
-        name, version = get_name_version(filename)
-        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
+        name = get_name_version(filename)
+        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
 
-def update_instrument(host, filename, run=False):
-    name, version = get_name_version(filename)
-    local_instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-    for version in local_instruments[name]:
-        r = requests.get('http://{}/api/instruments/delete/{}/{}'.format(host, name, version))
-    upload_instrument(host, filename, run=run)
-
-def run_instrument(host, name=None, version=None, restart=False):
+def run_instrument(host, name=None, restart=False):
     instrument_running = False
     instrument_in_store = False
-
-    live_name, live_version = live_instrument(host)
-    name_ok = (live_name == name)
-    version_ok = ((version is None) or (live_version == version))
+    status = instrument_status(host)
+    instruments = status['instruments']
+    live_instrument = status['live_instrument']
     
-    if (name is None) or (name_ok and version_ok): # Instrument already running
-        name, version = live_name, live_version
+    if (name is None) or (live_instrument == name): # Instrument already running
+        name = live_instrument
         instrument_running = True
 
     if not instrument_running: # Find the instrument in the local store:
-        instruments = requests.get('http://{}/api/instruments/local'.format(host)).json()
-        versions = instruments.get(name)
-        if versions is None:
-            raise ValueError('Instrument %s not found' % name)
-
-        if version is None:
-            # Use the first version found by default
-            version = versions[0]
-        if version in versions:
+        if name in instruments:
             instrument_in_store = True
-        else:
-            raise ValueError('Did not found version {} for instrument {}'.format(version, name))
+	else:
+            raise ValueError('Did not found instrument {}'.format(name))
 
     if instrument_in_store or (instrument_running and restart):
-        r = requests.get('http://{}/api/instruments/run/{}/{}'.format(host, name, version))
+        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
 
 def connect(host, *args, **kwargs):
     run_instrument(host, *args, **kwargs)
